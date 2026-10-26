@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.local
+.DS_Store
+Thumbs.db
+screens/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
