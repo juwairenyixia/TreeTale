@@ -3,6 +3,9 @@
 > **Every tree tells a story.**  
 > 把系统发育树变成可以探索、比较和讲述的交互式图谱。
 
+**在线演示：** https://juwairenyixia.github.io/TreeTale/  
+[![Deploy](https://github.com/juwairenyixia/TreeTale/actions/workflows/deploy.yml/badge.svg)](https://github.com/juwairenyixia/TreeTale/actions/workflows/deploy.yml)
+
 TreeTale 是一个面向生物信息学课程的**纯前端**静态网页项目。它不负责建树，而是负责把已经建好的 Newick 树讲清楚：拖入文件、缩放搜索、检查节点、折叠低支持分支、比较基因树与物种树，并导出 SVG 放进报告。
 
 <p align="center">
