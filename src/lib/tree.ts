@@ -97,9 +97,17 @@ export function taxonKey(name: string): string {
     .toLowerCase();
 }
 
+export function taxonLabel(
+  name: string | undefined,
+  metadata?: Record<string, TaxonMeta>,
+): string {
+  if (!name) return '未命名';
+  return metadata?.[name]?.cn ?? metadata?.[name]?.common ?? name.replace(/_/g, ' ');
+}
+
 export function displayName(node: PhyloNode, metadata?: Record<string, TaxonMeta>): string {
   if (!node.name) return '未命名节点';
-  return metadata?.[node.name]?.common ?? node.name.replace(/_/g, ' ');
+  return taxonLabel(node.name, metadata);
 }
 
 export function cladeKey(node: PhyloNode): string {

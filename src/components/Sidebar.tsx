@@ -68,7 +68,7 @@ export function Sidebar({
   return (
     <aside className={`sidebar ${isOpen ? 'is-open' : ''}`} aria-label="树库与视图设置">
       <div className="sidebar__mobile-head">
-        <span>Tree library</span>
+        <span>树库</span>
         <button onClick={onClose} aria-label="关闭侧栏">
           <X size={18} />
         </button>
@@ -78,7 +78,7 @@ export function Sidebar({
         <div className="story-sidebar">
           <div className="story-sidebar__eyebrow">
             <span>{story.eyebrow}</span>
-            <span>{story.steps.length} stops</span>
+            <span>{story.steps.length} 步</span>
           </div>
           <h2>{story.title}</h2>
           <p>{story.summary}</p>
@@ -129,7 +129,7 @@ export function Sidebar({
         <>
           <section className="sidebar-section">
             <div className="sidebar-heading">
-              <span>TREE LIBRARY</span>
+              <span>树库</span>
               <span>{String(records.length).padStart(2, '0')}</span>
             </div>
 
@@ -182,8 +182,8 @@ export function Sidebar({
                 {dragOver ? <FileUp size={19} /> : <Upload size={19} />}
               </span>
               <span>
-                <strong>{dragOver ? '松手导入' : '导入 Newick'}</strong>
-                <small>拖拽或点击 · 只在本地读取</small>
+                <strong>{dragOver ? '松手导入' : '导入树文件'}</strong>
+                <small>支持 Newick 格式 · 只在本地读取</small>
               </span>
             </div>
           </section>
@@ -191,13 +191,13 @@ export function Sidebar({
           {mode === 'compare' ? (
             <section className="sidebar-section">
               <div className="sidebar-heading">
-                <span>COMPARE WITH</span>
+                <span>比较对象</span>
                 <GitCompareArrows size={14} />
               </div>
               <div className="compare-current">
                 <span className="compare-dot compare-dot--left" />
                 <div>
-                  <small>LEFT TREE</small>
+                  <small>左树</small>
                   <strong>{active.name}</strong>
                 </div>
               </div>
@@ -209,7 +209,7 @@ export function Sidebar({
                       .filter((record) => record.id !== activeId)
                       .map((record) => (
                         <option key={record.id} value={record.id}>
-                          {record.name} · {record.tree.leaves.length} taxa
+                          {record.name} · {record.tree.leaves.length} 个类群
                         </option>
                       ))}
                   </select>
@@ -219,18 +219,18 @@ export function Sidebar({
               <div className="compare-current compare-current--right">
                 <span className="compare-dot compare-dot--right" />
                 <div>
-                  <small>RIGHT TREE</small>
+                  <small>右树</small>
                   <strong>{records.find((record) => record.id === compareId)?.name ?? '—'}</strong>
                 </div>
               </div>
               <p className="sidebar-help">
-                RF 距离只比较共同 taxa 的非平凡进化枝。未匹配的物种会在右侧提示。
+                RF 距离只比较两棵树共有的物种。未匹配的物种会在右侧提示，不参与计算。
               </p>
             </section>
           ) : (
             <section className="sidebar-section">
               <div className="sidebar-heading">
-                <span>VIEW</span>
+                <span>视图设置</span>
                 <SlidersHorizontal size={14} />
               </div>
 
@@ -259,13 +259,13 @@ export function Sidebar({
                     className={settings.branchMode === 'phylogram' ? 'is-active' : ''}
                     onClick={() => onSettings({ branchMode: 'phylogram' })}
                   >
-                    Phylogram
+                    按枝长
                   </button>
                   <button
                     className={settings.branchMode === 'cladogram' ? 'is-active' : ''}
                     onClick={() => onSettings({ branchMode: 'cladogram' })}
                   >
-                    Cladogram
+                    按拓扑
                   </button>
                 </div>
               </div>
@@ -273,7 +273,7 @@ export function Sidebar({
               <div className="field">
                 <div className="field__row">
                   <span>折叠低支持分支</span>
-                  <b>{settings.supportThreshold === 0 ? 'off' : `< ${settings.supportThreshold}`}</b>
+                  <b>{settings.supportThreshold === 0 ? '关闭' : `低于 ${settings.supportThreshold}`}</b>
                 </div>
                 <input
                   className="range"
@@ -292,8 +292,8 @@ export function Sidebar({
 
               <div className="toggle-row">
                 <div>
-                  <strong>Ladderize</strong>
-                  <small>按 clade 大小排序</small>
+                  <strong>按类群大小排序</strong>
+                  <small>让较大的进化枝排在前面</small>
                 </div>
                 <button
                   className={`switch ${settings.ladderize ? 'is-on' : ''}`}
@@ -346,7 +346,7 @@ export function Sidebar({
           {legend.length > 0 && (
             <section className="sidebar-section">
               <div className="sidebar-heading">
-                <span>LEGEND</span>
+                <span>图例</span>
                 <span>{legend.length}</span>
               </div>
               <div className="legend">
@@ -358,8 +358,18 @@ export function Sidebar({
                   </div>
                 ))}
               </div>
+              <p className="legend-help">
+                {settings.colorBy === 'habitat'
+                  ? '颜色表示这种动物主要生活在什么环境。'
+                  : '颜色相同的物种属于同一类群。'}
+              </p>
             </section>
           )}
+
+          <div className="sidebar-note sidebar-note--cn">
+            <BookOpen size={14} />
+            <span>内置示例中的每个物种都有中文名和一段简单说明，点击树上的名字即可查看。</span>
+          </div>
 
           <div className="sidebar-note">
             <Info size={14} />

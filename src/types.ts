@@ -24,9 +24,15 @@ export interface Tree {
 }
 
 export interface TaxonMeta {
+  /** 中文常用名，优先用于树标签和检查器标题 */
+  cn?: string;
+  /** 英文常用名，仅在需要时作为辅助信息 */
   common?: string;
+  /** 中文类群名 */
   group?: string;
+  /** 中文生境名 */
   habitat?: string;
+  /** 面向初学者的中文说明 */
   note?: string;
 }
 

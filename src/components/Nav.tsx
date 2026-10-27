@@ -58,7 +58,7 @@ export function Nav({ inWorkbench, onHome, onWorkbench, onSection }: NavProps) {
         <div className="nav__actions">
           <span className="nav__status">
             <span className="status-dot" />
-            Newick ready
+树文件就绪
           </span>
           <button className="btn btn--dark btn--sm" onClick={onWorkbench}>
             <GitBranch size={15} />

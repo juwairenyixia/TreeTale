@@ -63,11 +63,11 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
   return (
     <div className="compare-view">
       <div className="compare-view__head">
-        <span className="mono-label">TANGLEGRAM / SHARED TAXA</span>
+        <span className="mono-label">连线比对图 / 共同物种</span>
         <div className="compare-view__legend">
           <span><i className="compare-dot compare-dot--left" />{left.name}</span>
           <span><i className="compare-dot compare-dot--right" />{right.name}</span>
-          <b>RF {comparison.rf}</b>
+          <b>RF 距离 {comparison.rf}</b>
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
 
         <line x1={500} y1={28} x2={500} y2={height - 28} className="compare-divider" />
         <text x={500} y={36} textAnchor="middle" className="compare-gutter-label">
-          SAME TAXA · DIFFERENT TOPOLOGY
+          相同物种 · 不同拓扑
         </text>
 
         <g className="compare-tree compare-tree--left">
@@ -125,6 +125,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
                 onMouseLeave={() => setHovered(null)}
               >
                 <circle cx={tip.x} cy={tip.y} r={active ? 4.5 : 2.9} className="compare-tip" />
+                <title>{labelFor(tip.name, left.metadata)}</title>
                 <text
                   x={452}
                   y={tip.y + 4}
@@ -172,6 +173,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
                 onMouseLeave={() => setHovered(null)}
               >
                 <circle cx={tip.x} cy={tip.y} r={active ? 4.5 : 2.9} className="compare-tip" />
+                <title>{labelFor(tip.name, right.metadata)}</title>
                 <text
                   x={548}
                   y={tip.y + 4}
@@ -218,20 +220,20 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
 
         <g className="compare-foot">
           <text x={18} y={height - 18} className="compare-foot-label">
-            {left.tree.leaves.length} taxa · rooted · phylogram
+            {left.tree.leaves.length} 个物种 · 有根树 · 按枝长
           </text>
           <text x={982} y={height - 18} textAnchor="end" className="compare-foot-label">
-            {right.tree.leaves.length} taxa · rooted · phylogram
+            {right.tree.leaves.length} 个物种 · 有根树 · 按枝长
           </text>
           <text x={500} y={height - 18} textAnchor="middle" className="compare-foot-label">
-            {links === 0 ? 'topologies match' : `${links} unshared clades`}
+            {links === 0 ? '两棵树拓扑一致' : `${links} 个不一致的进化枝`}
           </text>
         </g>
       </svg>
 
       <div className="compare-view__hint">
-        <span>悬停一个物种，追踪它在两棵树中的位置。</span>
-        <span>连线交叉 = 位置变化，不一定是错误。</span>
+        <span>鼠标移到物种名上，可以看到它在两棵树中的位置。</span>
+        <span>连线交叉表示位置变化，不一定是错误。</span>
       </div>
     </div>
   );
@@ -239,7 +241,8 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
 
 function labelFor(name: string | undefined, metadata: Record<string, TaxonMeta>): string {
   if (!name) return '未命名';
-  return metadata[name]?.common ?? name.replace(/_/g, ' ');
+  const meta = metadata[name];
+  return meta?.cn ?? meta?.common ?? name.replace(/_/g, ' ');
 }
 
 function truncate(value: string, max = 21): string {

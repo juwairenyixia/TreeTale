@@ -25,15 +25,15 @@ const HERO_NEWICK = `
 `;
 
 const COMMON: Record<string, string> = {
-  Zebrafish: 'Zebrafish',
-  Coelacanth: 'Coelacanth',
-  Frog: 'Frog',
-  Chicken: 'Chicken',
-  Human: 'Human',
-  Hippo: 'Hippo',
-  Whale: 'Blue whale',
-  Dolphin: 'Dolphin',
-  Shark: 'Shark',
+  Zebrafish: '斑马鱼',
+  Coelacanth: '腔棘鱼',
+  Frog: '青蛙',
+  Chicken: '鸡',
+  Human: '人类',
+  Hippo: '河马',
+  Whale: '蓝鲸',
+  Dolphin: '海豚',
+  Shark: '鲨鱼',
 };
 
 export function HeroTree({ onOpen }: { onOpen: () => void }) {
@@ -65,8 +65,8 @@ export function HeroTree({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="hero-visual" aria-label="系统发育树预览">
       <div className="hero-visual__top">
-        <span className="mono-label">SPECIMEN 01 / VERTEBRATA</span>
-        <span className="hero-visual__count">09 taxa</span>
+        <span className="mono-label">标本 01 / 脊椎动物</span>
+        <span className="hero-visual__count">9 个物种</span>
       </div>
 
       <div className="hero-visual__glow" />
@@ -146,16 +146,16 @@ export function HeroTree({ onOpen }: { onOpen: () => void }) {
       <div className="hero-float hero-float--clade">
         <span className="hero-float__dot" />
         <div>
-          <strong>Cetacea</strong>
-          <span>鲸类 · 100 support</span>
+          <strong>鲸类</strong>
+          <span>支持度 100 · 海洋哺乳动物</span>
         </div>
       </div>
 
       <div className="hero-float hero-float--rf">
         <GitCompareArrows size={17} />
         <div>
-          <strong>RF 0.18</strong>
-          <span>gene tree vs species tree</span>
+          <strong>拓扑差异 0.18</strong>
+          <span>基因树 vs 物种树</span>
         </div>
       </div>
 

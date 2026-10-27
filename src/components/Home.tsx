@@ -28,29 +28,29 @@ interface HomeProps {
 const concepts = [
   {
     number: '01',
-    term: 'Clade',
-    cn: '进化枝',
+    term: '进化枝',
+    cn: 'Clade',
     body: '一个祖先及其所有后代。选中一个节点，就是在选中一整段共享的历史。',
     icon: GitFork,
   },
   {
     number: '02',
-    term: 'Support',
-    cn: '支持度',
+    term: '支持度',
+    cn: 'Support',
     body: '重采样中该分支出现的比例。它是证据强度，不是“95% 的概率为真”。',
     icon: Sparkles,
   },
   {
     number: '03',
-    term: 'Branch length',
-    cn: '分支长度',
-    body: '在 phylogram 中通常表示每个位点的替换数；在 cladogram 中只保留拓扑。',
+    term: '枝长',
+    cn: 'Branch length',
+    body: '在“按枝长”视图中表示每个位点的替换数；在“按拓扑”视图中只保留分支顺序。',
     icon: Layers3,
   },
   {
     number: '04',
-    term: 'RF distance',
-    cn: '拓扑距离',
+    term: '拓扑距离',
+    cn: 'RF distance',
     body: '两棵树中不共享的进化枝数量。适合快速筛查冲突，不负责解释原因。',
     icon: GitCompareArrows,
   },
@@ -78,7 +78,7 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
             <em>tells a story.</em>
           </h1>
           <p className="hero__lead">
-            读懂一棵树，看见一段演化史。TreeTale 把 Newick 文件变成可以缩放、搜索、比较和讲述的交互式图谱。
+            读懂一棵树，看见一段演化史。TreeTale 把树文件变成可以缩放、搜索、比较和讲述的交互式图谱，并为每个物种准备了中文名和简单说明。
           </p>
           <div className="hero__actions">
             <button className="btn btn--primary btn--lg" onClick={onWorkbench}>
@@ -106,7 +106,7 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
           </div>
           <p className="hero__note">
             <span className="status-dot" />
-            无需服务器 · 拖入 Newick 即可开始 · 数据不会离开浏览器
+            无需服务器 · 拖入树文件即可开始 · 数据不会离开浏览器
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
                 <h3>{record.name}</h3>
                 <p>{record.subtitle}</p>
                 <div className="tag-row">
-                  <span>{record.tree.leaves.length} taxa</span>
+                  <span>{record.tree.leaves.length} 个类群</span>
                   <span>Newick</span>
                   {record.compareWith && <span>compare</span>}
                 </div>
@@ -252,7 +252,7 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
               <h3>{story.title}</h3>
               <p>{story.summary}</p>
               <div className="story-card__foot">
-                <span>{String(story.steps.length).padStart(2, '0')} stops</span>
+                <span>{String(story.steps.length).padStart(2, '0')} 步</span>
                 <span className="story-card__line" />
                 <span>开始阅读</span>
               </div>
@@ -295,13 +295,13 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
 
         <div className="howto">
           <div className="howto__title">
-            <span className="mono-label">A 60-SECOND START</span>
+            <span className="mono-label">60 秒上手</span>
             <h3>第一次打开，先做这三件事。</h3>
           </div>
           <ol>
             <li><span>01</span>打开一棵示例树，点击任意叶节点。</li>
             <li><span>02</span>在右侧检查器里看它的枝长、支持度和类群。</li>
-            <li><span>03</span>切到 Compare，选择另一棵树，读一次 RF 距离。</li>
+            <li><span>03</span>切到“比较”，选择另一棵树，读一次 RF 距离。</li>
           </ol>
         </div>
       </section>

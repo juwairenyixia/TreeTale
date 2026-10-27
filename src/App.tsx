@@ -78,12 +78,12 @@ export default function App() {
       try {
         const text = await file.text();
         const id = `custom-${Date.now()}`;
-        const name = file.name.replace(/\.(nwk|newick|tree|tre|txt)$/i, '') || 'Imported tree';
+        const name = file.name.replace(/\.(nwk|newick|tree|tre|txt)$/i, '') || '导入的树';
         const tree = parseNewick(text, { id, name });
         const record: TreeRecord = {
           id,
           name,
-          subtitle: `${tree.leaves.length} taxa · 本地导入`,
+          subtitle: `${tree.leaves.length} 个类群 · 本地导入`,
           newick: text,
           tree,
           metadata: {},

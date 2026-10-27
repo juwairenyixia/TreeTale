@@ -16,7 +16,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TreeRecord, ViewSettings, WorkbenchMode } from '../types';
 import { stories } from '../data/examples';
-import { prepareTree, getMrca, findTip, taxonKey } from '../lib/tree';
+import { prepareTree, getMrca, findTip, taxonKey, displayName } from '../lib/tree';
 import { compareTrees } from '../lib/rf';
 import { buildColorScale } from '../lib/palette';
 import { exportPng, exportSvg, downloadText } from '../lib/export';
@@ -120,6 +120,17 @@ export function Workbench({
   useEffect(() => {
     if (storyId) setStepIndex(0);
   }, [storyId]);
+
+  useEffect(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return;
+    const match = displayTree.leaves.find((leaf) => {
+      const cn = displayName(leaf, active.metadata).toLowerCase();
+      const latin = (leaf.name ?? '').toLowerCase();
+      return cn.includes(query) || latin.includes(query);
+    });
+    if (match) setSelectedId(match.id);
+  }, [search, displayTree, active.metadata]);
 
   useEffect(() => {
     if (mode === 'story') {
@@ -275,7 +286,7 @@ export function Workbench({
               <PanelLeft size={18} />
             </button>
             <div className="workbench__crumb">
-              <span>WORKBENCH</span>
+              <span>工作台</span>
               <i>/</i>
               <strong>{active.name}</strong>
             </div>
@@ -304,8 +315,8 @@ export function Workbench({
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索物种…"
-                  aria-label="搜索物种"
+                  placeholder="搜索中文名或学名…"
+                  aria-label="搜索中文名或学名"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} aria-label="清除搜索">
@@ -317,8 +328,8 @@ export function Workbench({
 
             {mode === 'compare' && comparison && (
               <span className={`rf-pill ${comparison.identical ? 'is-success' : ''}`}>
-                RF {comparison.rf}
-                <small>{sharedCount} shared</small>
+                RF 距离 {comparison.rf}
+                <small>{sharedCount} 个共同物种</small>
               </span>
             )}
 
@@ -404,7 +415,7 @@ export function Workbench({
 
       <div className={`workbench__inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="inspector__mobile-head">
-          <span>INSPECTOR</span>
+          <span>节点检查</span>
           <button onClick={() => setInspectorOpen(false)} aria-label="关闭检查器">
             <X size={18} />
           </button>

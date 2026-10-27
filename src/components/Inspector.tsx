@@ -13,7 +13,7 @@ import {
 import type { CSSProperties } from 'react';
 import type { PhyloNode, Story, Tree, WorkbenchMode, TaxonMeta } from '../types';
 import type { TreeComparison } from '../lib/rf';
-import { displayName, descendantTips, pathToRoot } from '../lib/tree';
+import { displayName, descendantTips, pathToRoot, taxonLabel } from '../lib/tree';
 import { formatBranchLength } from '../lib/newick';
 import { formatRf } from '../lib/rf';
 import { supportColor } from '../lib/palette';
@@ -54,7 +54,7 @@ export function Inspector({
     return (
       <aside className="inspector">
         <div className="inspector__head">
-          <span className="panel-title">STORY / {String(stepIndex + 1).padStart(2, '0')}</span>
+          <span className="panel-title">演化故事 / {String(stepIndex + 1).padStart(2, '0')}</span>
           <span className="story-progress">{stepIndex + 1} / {story.steps.length}</span>
         </div>
         <div className="story-step">
@@ -62,11 +62,11 @@ export function Inspector({
           <h2>{step.title}</h2>
           <p>{step.body}</p>
           <div className="story-focus">
-            <span className="mono-label">FOCUS TAXA</span>
+            <span className="mono-label">本步涉及的物种</span>
             <div className="chip-wrap">
               {step.focusTips.slice(0, 8).map((tipName) => (
                 <button key={tipName} className="taxon-chip" onClick={() => onSelectTip(tipName)}>
-                  {metadata[tipName]?.common ?? tipName.replace(/_/g, ' ')}
+                  {taxonLabel(tipName, metadata)}
                 </button>
               ))}
               {step.focusTips.length > 8 && (
@@ -108,22 +108,22 @@ export function Inspector({
       return (
         <aside className="inspector">
           <div className="inspector__head">
-            <span className="panel-title">COMPARE / RF</span>
-            <span className="status-pill">not enough taxa</span>
+            <span className="panel-title">比较 / 拓扑差异</span>
+            <span className="status-pill">共同物种不足</span>
           </div>
           <div className="empty-inspector">
             <span className="empty-inspector__icon">
               <GitCompareArrows size={22} />
             </span>
-            <h2>共同 taxa 太少</h2>
+            <h2>共同物种太少</h2>
             <p>
-              当前两棵树只有 {comparison.sharedTaxa} 个共同 taxa，无法计算有意义的 RF 距离。
-              请在左侧 COMPARE WITH 中选择一棵共享更多物种的树。
+              当前两棵树只有 {comparison.sharedTaxa} 个共同物种，无法计算有意义的 RF 距离。
+              请在左侧“比较对象”中选择一棵共享更多物种的树。
             </p>
           </div>
           <div className="inspector-note">
             <Info size={14} />
-            <p>RF 只比较共同 taxa 的非平凡进化枝；名称按大小写不敏感、下划线转空格匹配。</p>
+            <p>RF 只比较共同物种的进化枝；物种名会忽略大小写、下划线和空格差异。</p>
           </div>
         </aside>
       );
@@ -133,9 +133,9 @@ export function Inspector({
     return (
       <aside className="inspector">
         <div className="inspector__head">
-          <span className="panel-title">COMPARE / RF</span>
+          <span className="panel-title">比较 / 拓扑差异</span>
           <span className={`status-pill ${comparison.identical ? 'is-success' : ''}`}>
-            {comparison.identical ? 'identical' : 'topology differs'}
+            {comparison.identical ? '拓扑一致' : '拓扑不同'}
           </span>
         </div>
 
@@ -143,35 +143,35 @@ export function Inspector({
           <div className="rf-gauge" style={{ '--rf-progress': `${score * 3.6}deg` } as CSSProperties}>
             <div>
               <strong>{formatRf(comparison.normalizedRf)}</strong>
-              <span>normalized RF</span>
+              <span>归一化 RF</span>
             </div>
           </div>
           <div className="rf-copy">
-            <h2>{comparison.identical ? '两棵树拓扑一致' : '拓扑存在差异'}</h2>
+            <h2>{comparison.identical ? '两树拓扑一致' : '两树拓扑不同'}</h2>
             <p>
-              {comparison.rf} 个不共享的进化枝，理论最大 RF 为 {comparison.maxRf}。
-              RF 只描述拓扑差异，不解释差异的原因。
+              有 {comparison.rf} 个进化枝只出现在其中一棵树里，理论最大 RF 为 {comparison.maxRf}。
+              RF 距离只描述拓扑差异，不解释差异的原因。
             </p>
           </div>
         </div>
 
         <div className="compare-names">
-          <span><i className="compare-dot compare-dot--left" />{compareNames?.left ?? 'Tree A'}</span>
+          <span><i className="compare-dot compare-dot--left" />{compareNames?.left ?? '左树'}</span>
           <GitCompareArrows size={14} />
-          <span><i className="compare-dot compare-dot--right" />{compareNames?.right ?? 'Tree B'}</span>
+          <span><i className="compare-dot compare-dot--right" />{compareNames?.right ?? '右树'}</span>
         </div>
 
         <div className="inspector-section">
           <div className="section-line">
-            <span>匹配 taxa</span>
+            <span>两棵树共有的物种</span>
             <strong>{comparison.sharedTaxa}</strong>
           </div>
           <div className="section-line">
-            <span>仅左树出现的 clade</span>
+            <span>只在左树出现的进化枝</span>
             <strong>{comparison.leftOnly.length}</strong>
           </div>
           <div className="section-line">
-            <span>仅右树出现的 clade</span>
+            <span>只在右树出现的进化枝</span>
             <strong>{comparison.rightOnly.length}</strong>
           </div>
         </div>
@@ -180,29 +180,29 @@ export function Inspector({
           <div className="warning-card">
             <Info size={15} />
             <p>
-              有未匹配的 taxa：{comparison.unmatchedLeft.length} 个只在左树，
-              {comparison.unmatchedRight.length} 个只在右树。RF 仅基于共同 taxa 计算。
+              有未匹配的物种：{comparison.unmatchedLeft.length} 个只在左树，
+              {comparison.unmatchedRight.length} 个只在右树。RF 只按共同物种计算。
             </p>
           </div>
         )}
 
         <div className="inspector-section">
           <div className="section-heading">
-            <span className="mono-label">CONFLICTING CLADES</span>
+            <span className="mono-label">不一致的进化枝</span>
             <span>{comparison.leftOnly.length + comparison.rightOnly.length}</span>
           </div>
           {comparison.leftOnly.length + comparison.rightOnly.length === 0 ? (
-            <p className="muted-copy">两棵树的非平凡 clade 集合完全一致。</p>
+            <p className="muted-copy">两棵树的进化枝集合完全一致。</p>
           ) : (
             <div className="conflict-list">
               {[...comparison.leftOnly.slice(0, 3), ...comparison.rightOnly.slice(0, 3)].map((clade, index) => (
                 <div className="conflict-item" key={`${clade.side}-${clade.key}-${index}`}>
                   <span className={`compare-dot compare-dot--${clade.side}`} />
                   <div>
-                    <strong>{clade.size} taxa clade</strong>
-                    <p>{clade.tipNames.slice(0, 4).map((name) => metadata[name]?.common ?? name.replace(/_/g, ' ')).join('、')}</p>
+                    <strong>包含 {clade.size} 个物种的进化枝</strong>
+                    <p>{clade.tipNames.slice(0, 4).map((name) => taxonLabel(name, metadata)).join('、')}</p>
                   </div>
-                  <span className="conflict-side">{clade.side === 'left' ? 'A only' : 'B only'}</span>
+                  <span className="conflict-side">{clade.side === 'left' ? '仅左树' : '仅右树'}</span>
                 </div>
               ))}
             </div>
@@ -224,15 +224,15 @@ export function Inspector({
     return (
       <aside className="inspector">
         <div className="inspector__head">
-          <span className="panel-title">INSPECTOR</span>
-          <span className="status-pill">{selectedNode.collapsed ? 'collapsed' : isTip ? 'tip' : 'clade'}</span>
+          <span className="panel-title">节点检查</span>
+          <span className="status-pill">{selectedNode.collapsed ? '已折叠' : isTip ? '叶节点' : '进化枝'}</span>
         </div>
 
         <div className="node-hero">
-          <span className="node-hero__type">{isTip ? 'LEAF / TAXON' : 'INTERNAL NODE'}</span>
+          <span className="node-hero__type">{isTip ? '叶节点 / 物种' : '内部节点 / 共同祖先'}</span>
           <h2>{displayName(selectedNode, metadata)}</h2>
-          {selectedNode.name && metadata[selectedNode.name]?.common && (
-            <p className="scientific">{selectedNode.name.replace(/_/g, ' ')}</p>
+          {selectedNode.name && isTip && (
+            <p className="scientific">学名（拉丁名）：{selectedNode.name.replace(/_/g, ' ')}</p>
           )}
           <div className="node-badges">
             {metadata[selectedNode.name ?? '']?.group && (
@@ -241,39 +241,39 @@ export function Inspector({
             {metadata[selectedNode.name ?? '']?.habitat && (
               <span className="soft-badge">{metadata[selectedNode.name!]?.habitat}</span>
             )}
-            {selectedNode.collapsed && <span className="soft-badge">折叠的 clade</span>}
+            {selectedNode.collapsed && <span className="soft-badge">已折叠的进化枝</span>}
           </div>
         </div>
 
         <div className="metric-grid">
           <div className="metric">
-            <span>Branch length</span>
+            <span>枝长</span>
             <strong>{formatBranchLength(selectedNode.length)}</strong>
-            <small>到父节点的枝长</small>
+            <small>到父节点的距离</small>
           </div>
           <div className="metric">
-            <span>Root distance</span>
+            <span>距根长度</span>
             <strong>{formatBranchLength(distanceFromRoot(selectedNode))}</strong>
-            <small>累计枝长</small>
+            <small>从根累计的枝长</small>
           </div>
           <div className="metric">
-            <span>Descendants</span>
+            <span>后代数量</span>
             <strong>{tips.length}</strong>
-            <small>{isTip ? '叶节点' : '后代 taxa'}</small>
+            <small>{isTip ? '这是一个叶节点' : '包含的物种数'}</small>
           </div>
           <div className="metric">
-            <span>Support</span>
+            <span>支持度</span>
             <strong style={{ color: support !== undefined ? supportColor(support) : undefined }}>
               {support !== undefined ? Math.round(support) : '—'}
             </strong>
-            <small>bootstrap / posterior</small>
+            <small>自举值 / 后验概率</small>
           </div>
         </div>
 
         {support !== undefined && (
           <div className="support-meter">
             <div className="support-meter__head">
-              <span>Support</span>
+              <span>支持度</span>
               <strong>{Math.round(support)} / 100</strong>
             </div>
             <div className="support-meter__track">
@@ -285,7 +285,7 @@ export function Inspector({
         {!isTip && (
           <div className="inspector-section">
             <div className="section-heading">
-              <span className="mono-label">DESCENDANT TAXA</span>
+              <span className="mono-label">包含的物种</span>
               <span>{tips.length}</span>
             </div>
             <div className="chip-wrap">
@@ -294,9 +294,9 @@ export function Inspector({
                   key={tip.id}
                   className="taxon-chip"
                   onClick={() => onSelectTip(tip.name ?? '')}
-                  title={tip.name}
+                  title={metadata[tip.name ?? '']?.note ?? tip.name}
                 >
-                  {metadata[tip.name ?? '']?.common ?? tip.name?.replace(/_/g, ' ')}
+                  {taxonLabel(tip.name, metadata)}
                 </button>
               ))}
               {tips.length > 12 && <span className="taxon-chip taxon-chip--more">+{tips.length - 12}</span>}
@@ -304,16 +304,32 @@ export function Inspector({
           </div>
         )}
 
-        {metadata[selectedNode.name ?? '']?.note && (
-          <div className="inspector-note">
-            <BookOpen size={14} />
-            <p>{metadata[selectedNode.name!]?.note}</p>
+        {isTip && metadata[selectedNode.name ?? '']?.note && (
+          <div className="inspector-note inspector-note--annotation">
+            <BookOpen size={15} />
+            <div>
+              <strong>中文注释</strong>
+              <p>{metadata[selectedNode.name!]?.note}</p>
+            </div>
+          </div>
+        )}
+
+        {!isTip && (
+          <div className="inspector-note inspector-note--annotation">
+            <BookOpen size={15} />
+            <div>
+              <strong>这个节点是什么？</strong>
+              <p>
+                它代表一个共同祖先。它的所有后代物种，就是上面列出的那些。
+                支持度越高，说明这组物种“聚在一起”的证据越强。
+              </p>
+            </div>
           </div>
         )}
 
         <div className="inspector-note">
           <Info size={14} />
-          <p>支持度不是“该分支为真”的概率。bootstrap 与 posterior 的含义不同，读图时要看建树方法。</p>
+          <p>支持度不是“该分支为真”的概率。自举值（bootstrap）和后验概率（posterior）含义不同，读图时要看建树方法。</p>
         </div>
       </aside>
     );
@@ -322,7 +338,7 @@ export function Inspector({
   return (
     <aside className="inspector">
       <div className="inspector__head">
-        <span className="panel-title">HOW TO READ</span>
+        <span className="panel-title">读树指南</span>
         <CircleHelp size={16} />
       </div>
 
@@ -330,8 +346,8 @@ export function Inspector({
         <span className="empty-inspector__icon">
           <MousePointerClick size={22} />
         </span>
-        <h2>点击任意节点</h2>
-        <p>查看它代表的类群、支持度、枝长和后代 taxa。也可以直接搜索一个物种。</p>
+        <h2>点击树上的中文名</h2>
+        <p>右侧会显示这种动物的中文名、类群、生活环境和一段简单说明。也可以直接搜索中文名。</p>
       </div>
 
       <div className="reading-list">
@@ -339,14 +355,14 @@ export function Inspector({
           <span>01</span>
           <div>
             <strong>先看拓扑</strong>
-            <p>谁和谁更近？一个内部节点代表一个 clade。</p>
+            <p>谁和谁更近？一个内部节点代表一个“进化枝”。</p>
           </div>
         </div>
         <div className="reading-item">
           <span>02</span>
           <div>
             <strong>再看枝长</strong>
-            <p>Phylogram 的横轴是替换数，不是时间。</p>
+            <p>“按枝长”视图的横轴是替换数，不是时间。</p>
           </div>
         </div>
         <div className="reading-item">
@@ -360,7 +376,7 @@ export function Inspector({
 
       <div className="inspector-note inspector-note--accent">
         <Sparkles size={14} />
-        <p>提示：打开 Story 模式，看看一条叙事如何把注意力带到特定分支。</p>
+        <p>提示：打开“故事”模式，看看一条叙事如何把注意力带到特定分支。</p>
       </div>
 
       <button className="inspector-link" onClick={() => onSelectTip(tree.leaves[0]?.name ?? '')}>

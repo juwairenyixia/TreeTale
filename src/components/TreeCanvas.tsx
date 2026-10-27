@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import type { TaxonMeta, Tree, ViewSettings } from '../types';
 import { layoutTree } from '../lib/layout';
-import { displayName, maxDistance, pathToRoot, walk } from '../lib/tree';
+import { displayName, maxDistance, pathToRoot, taxonLabel, walk } from '../lib/tree';
 import { supportColor } from '../lib/palette';
 import type { ColorScale } from '../lib/palette';
 
@@ -247,10 +247,7 @@ export function TreeCanvas({
     }
   };
 
-  const labelFor = (name?: string) => {
-    if (!name) return '';
-    return metadata[name]?.common ?? name.replace(/_/g, ' ');
-  };
+  const labelFor = (name?: string) => taxonLabel(name, metadata);
 
   return (
     <div className="tree-canvas-shell">
@@ -352,6 +349,7 @@ export function TreeCanvas({
               const rotation = circular
                 ? (flip ? (angle * 180) / Math.PI - 180 : (angle * 180) / Math.PI)
                 : 0;
+              const note = metadata[node.name ?? '']?.note;
               return (
                 <g
                   key={node.id}
@@ -367,8 +365,9 @@ export function TreeCanvas({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') onSelect(node.id);
                   }}
-                  aria-label={labelFor(node.name)}
+                  aria-label={note ? `${labelFor(node.name)}：${note}` : labelFor(node.name)}
                 >
+                  <title>{note ? `${labelFor(node.name)}：${note}` : labelFor(node.name)}</title>
                   {isCollapsed ? (
                     <path
                       d={`M ${node.x - 2} ${node.y - 5} L ${node.x + 9} ${node.y} L ${node.x - 2} ${node.y + 5} Z`}
@@ -408,6 +407,10 @@ export function TreeCanvas({
             const support = node.support;
             return (
               <g key={node.id} className={`tree-internal ${muted ? 'is-muted' : ''}`}>
+                <title>
+                  共同祖先 · 包含 {node.leafCount} 个类群
+                  {support !== undefined ? ` · 支持度 ${Math.round(support)}` : ''}
+                </title>
                 <circle
                   cx={node.x}
                   cy={node.y}
@@ -461,22 +464,22 @@ export function TreeCanvas({
               className="scale-line"
             />
             <text x={minX + scaleLength + 8} y={layout.height - 13} className="scale-label">
-              {scaleValue} substitutions / site
+              每位点 {scaleValue} 个替换
             </text>
           </g>
         )}
       </svg>
 
       <div className="canvas-status">
-        <span>{tree.leaves.length} tips</span>
+        <span>{tree.leaves.length} 个叶节点</span>
         <i />
-        <span>{settings.layout === 'rectangular' ? 'rectangular' : 'circular'}</span>
+        <span>{settings.layout === 'rectangular' ? '矩形' : '圆形'}</span>
         <i />
-        <span>{settings.branchMode}</span>
+        <span>{settings.branchMode === 'phylogram' ? '按枝长' : '按拓扑'}</span>
         {searchText && (
           <>
             <i />
-            <span className="canvas-status__search">{searchTipIds.size} matches</span>
+            <span className="canvas-status__search">{searchTipIds.size} 个匹配</span>
           </>
         )}
       </div>
