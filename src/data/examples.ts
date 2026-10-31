@@ -1,4 +1,4 @@
-import type { Story, TaxonMeta, TreeRecord } from '../types';
+import type { CladeLabel, Story, TaxonMeta, TreeRecord } from '../types';
 import { parseNewick } from '../lib/newick';
 
 export interface ExampleSpec extends Omit<TreeRecord, 'tree'> {
@@ -439,6 +439,220 @@ const geneMeta: Record<string, TaxonMeta> = {
   },
 };
 
+const fishTips = [
+  'Danio_rerio',
+  'Latimeria_chalumnae',
+  'Callorhinchus_milii',
+];
+
+const amphibianTips = ['Xenopus_laevis'];
+
+const reptileBirdTips = [
+  'Gallus_gallus',
+  'Taeniopygia_guttata',
+  'Chelonia_mydas',
+  'Crocodylus_porosus',
+];
+
+const mammalTips = [
+  'Ornithorhynchus_anatinus',
+  'Macropus_giganteus',
+  'Phascolarctos_cinereus',
+  'Loxodonta_africana',
+  'Dasypus_novemcinctus',
+  'Homo_sapiens',
+  'Pan_troglodytes',
+  'Macaca_mulatta',
+  'Mus_musculus',
+  'Rattus_norvegicus',
+  'Pteropus_vampyrus',
+  'Canis_lupus',
+  'Felis_catus',
+  'Phoca_vitulina',
+  'Bos_taurus',
+  'Hippopotamus_amphibius',
+  'Balaenoptera_musculus',
+  'Tursiops_truncatus',
+];
+
+const primateTips = ['Homo_sapiens', 'Pan_troglodytes', 'Macaca_mulatta'];
+const cetaceanTips = ['Balaenoptera_musculus', 'Tursiops_truncatus'];
+const cetartiodactylTips = [
+  'Bos_taurus',
+  'Hippopotamus_amphibius',
+  'Balaenoptera_musculus',
+  'Tursiops_truncatus',
+];
+const rodentTips = ['Mus_musculus', 'Rattus_norvegicus'];
+const carnivoreTips = ['Canis_lupus', 'Felis_catus'];
+
+const amnioteTips = [...reptileBirdTips, ...mammalTips];
+const tetrapodTips = [...amphibianTips, ...amnioteTips];
+
+const vertebrateCladeLabels: CladeLabel[] = [
+  {
+    id: 'fish',
+    name: '鱼类',
+    tips: fishTips,
+    description: '终生生活在水中、用鳃呼吸的脊椎动物。',
+    offsetX: 10,
+    offsetY: 20,
+  },
+  {
+    id: 'tetrapods',
+    name: '四足动物',
+    tips: tetrapodTips,
+    description: '拥有四肢（或由四肢演化而来的结构）的脊椎动物。',
+    offsetX: 10,
+    offsetY: -34,
+  },
+  {
+    id: 'amniotes',
+    name: '羊膜动物',
+    tips: amnioteTips,
+    description: '产羊膜卵或胎生的脊椎动物，包括爬行类、鸟类和哺乳类。',
+    offsetX: 12,
+    offsetY: 30,
+  },
+  {
+    id: 'mammals',
+    name: '哺乳动物',
+    tips: mammalTips,
+    description: '用乳汁哺育幼崽、身上有毛的脊椎动物。',
+    offsetX: 10,
+    offsetY: -34,
+  },
+  {
+    id: 'primates',
+    name: '灵长类',
+    tips: primateTips,
+    description: '猴子、猩猩和人类所在的类群，手指灵活、眼睛朝前。',
+    offsetX: 12,
+    offsetY: -26,
+  },
+  {
+    id: 'cetaceans',
+    name: '鲸类',
+    tips: cetaceanTips,
+    description: '完全生活在海洋中的哺乳动物，包括鲸和海豚。',
+    offsetX: 12,
+    offsetY: -26,
+  },
+];
+
+const vertebrateGeneCladeLabels: CladeLabel[] = [
+  vertebrateCladeLabels[0],
+  vertebrateCladeLabels[1],
+  vertebrateCladeLabels[2],
+  vertebrateCladeLabels[3],
+  vertebrateCladeLabels[4],
+  {
+    id: 'cetartiodactyls',
+    name: '鲸偶蹄类',
+    tips: cetartiodactylTips,
+    description: '鲸、海豚、河马和牛等组成的类群；在这棵基因树里，海豚的位置与物种树不同。',
+    offsetX: 12,
+    offsetY: -26,
+  },
+];
+
+const microbeCladeLabels: CladeLabel[] = [
+  {
+    id: 'proteobacteria',
+    name: '变形菌门',
+    tips: ['Escherichia_coli', 'Salmonella_enterica', 'Vibrio_cholerae', 'Pseudomonas_aeruginosa'],
+    description: '一类常见细菌，包含大肠杆菌、沙门氏菌和霍乱弧菌等。',
+    offsetX: 10,
+    offsetY: -28,
+  },
+  {
+    id: 'bacilli',
+    name: '芽孢杆菌类',
+    tips: ['Bacillus_subtilis', 'Staphylococcus_aureus', 'Streptococcus_pyogenes'],
+    description: '包含枯草芽孢杆菌和常见球菌的一组细菌。',
+    offsetX: 10,
+    offsetY: -28,
+  },
+  {
+    id: 'lactic-acid',
+    name: '乳酸菌',
+    tips: ['Lactobacillus_acidophilus', 'Bifidobacterium_longum'],
+    description: '能发酵产生乳酸、常见于肠道和发酵食品的细菌。',
+    offsetX: 10,
+    offsetY: 24,
+  },
+  {
+    id: 'cyanobacteria',
+    name: '蓝细菌门',
+    tips: ['Synechococcus_elongatus', 'Prochlorococcus_marinus'],
+    description: '能进行光合作用、在海洋中非常丰富的微生物。',
+    offsetX: 10,
+    offsetY: -26,
+  },
+  {
+    id: 'extremophiles',
+    name: '嗜极类群',
+    tips: ['Nitrosopumilus_maritimus', 'Methanobrevibacter_smithii', 'Thermus_thermophilus', 'Deinococcus_radiodurans'],
+    description: '生活在高温、高盐、强辐射等极端环境中的微生物。',
+    offsetX: 10,
+    offsetY: -30,
+  },
+  {
+    id: 'actinomycetes',
+    name: '放线菌类',
+    tips: ['Mycobacterium_tuberculosis', 'Streptomyces_coelicolor'],
+    description: '包含结核分枝杆菌和能产生抗生素的链霉菌。',
+    offsetX: 10,
+    offsetY: 24,
+  },
+];
+
+const geneTreeCladeLabels: CladeLabel[] = [
+  {
+    id: 'primates',
+    name: '灵长类',
+    tips: ['Homo_sapiens', 'Pan_troglodytes', 'Gorilla_gorilla'],
+    description: '人类、黑猩猩和大猩猩所在的类群。',
+    offsetX: 10,
+    offsetY: -28,
+  },
+  {
+    id: 'rodents',
+    name: '啮齿类',
+    tips: rodentTips,
+    description: '小鼠和大鼠所在的类群。',
+    offsetX: 10,
+    offsetY: 24,
+  },
+];
+
+const speciesTreeCladeLabels: CladeLabel[] = [
+  {
+    id: 'primates',
+    name: '灵长类',
+    tips: ['Homo_sapiens', 'Pan_troglodytes', 'Gorilla_gorilla'],
+    description: '人类、黑猩猩和大猩猩所在的类群。',
+    offsetX: 10,
+    offsetY: -28,
+  },
+  {
+    id: 'rodents',
+    name: '啮齿类',
+    tips: rodentTips,
+    description: '小鼠和大鼠所在的类群。',
+    offsetX: 10,
+    offsetY: 24,
+  },
+  {
+    id: 'carnivores',
+    name: '食肉类',
+    tips: carnivoreTips,
+    description: '灰狼和家猫所在的类群。',
+    offsetX: 10,
+    offsetY: -28,
+  },
+];
+
 export const exampleSpecs: ExampleSpec[] = [
   {
     id: 'vertebrates',
@@ -446,6 +660,7 @@ export const exampleSpecs: ExampleSpec[] = [
     subtitle: '26 个物种 · 从鱼到鲸',
     newick: vertebrateTree,
     metadata: vertebrateMeta,
+    cladeLabels: vertebrateCladeLabels,
     source: '教学示例 · 拓扑依据公开系统发育关系整理，分支长度用于可视化演示',
     accent: '#d8f27a',
     compareWith: 'vertebrate-gene',
@@ -456,6 +671,7 @@ export const exampleSpecs: ExampleSpec[] = [
     subtitle: '26 个物种 · 与物种树冲突',
     newick: vertebrateGeneTree,
     metadata: vertebrateMeta,
+    cladeLabels: vertebrateGeneCladeLabels,
     source: '教学示意基因树 · 仅移动海豚的位置，用于演示基因树与物种树的拓扑冲突',
     accent: '#f2c14e',
     compareWith: 'vertebrates',
@@ -466,6 +682,7 @@ export const exampleSpecs: ExampleSpec[] = [
     subtitle: '17 个类群 · 极端环境与共生',
     newick: bacterialTree,
     metadata: bacterialMeta,
+    cladeLabels: microbeCladeLabels,
     source: '教学示意树 · 拓扑与分支长度不构成真实推断结果',
     accent: '#ff8a66',
   },
@@ -475,6 +692,7 @@ export const exampleSpecs: ExampleSpec[] = [
     subtitle: '10 个物种 · 与物种树冲突',
     newick: geneTree,
     metadata: geneMeta,
+    cladeLabels: geneTreeCladeLabels,
     source: '教学示例 · 用于演示基因树与物种树的拓扑冲突',
     accent: '#8cc8c5',
     compareWith: 'species-tree',
@@ -485,6 +703,7 @@ export const exampleSpecs: ExampleSpec[] = [
     subtitle: '10 个物种 · 参考拓扑',
     newick: speciesTree,
     metadata: geneMeta,
+    cladeLabels: speciesTreeCladeLabels,
     source: '教学示例 · 用于演示基因树与物种树的拓扑冲突',
     accent: '#c7b8ff',
     compareWith: 'gene-tree',

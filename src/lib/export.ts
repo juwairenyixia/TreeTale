@@ -15,7 +15,11 @@ const SVG_STYLE = `
   .tip-dot { stroke: #f7f3e9; stroke-width: 1.2; }
   .support-label { font-size: 10.5px; font-weight: 700; fill: #6b7e74; letter-spacing: .02em; }
   .support-label--muted { opacity: .18; }
-  .clade-label { font-size: 11px; font-weight: 700; fill: #1f6f5c; letter-spacing: .06em; text-transform: uppercase; }
+  .clade-label rect { fill: #fffdf7; stroke: rgba(31,111,92,.4); stroke-width: 1; }
+  .clade-label circle { fill: #1f6f5c; }
+  .clade-label text { fill: #1b4b3e; font-size: 11px; font-weight: 800; letter-spacing: .02em; }
+  .clade-label.is-muted { opacity: .18; }
+  .clade-label__leader { fill: none; stroke: rgba(31,111,92,.3); stroke-width: 1; stroke-dasharray: 2 4; }
   .circular-ring { fill: none; stroke: rgba(16,35,28,.08); stroke-width: 1; }
   .scale-line { stroke: rgba(16,35,28,.4); stroke-width: 1.2; }
   .scale-label { font-size: 10px; fill: #6b7e74; font-weight: 600; }

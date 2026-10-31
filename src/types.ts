@@ -36,6 +36,20 @@ export interface TaxonMeta {
   note?: string;
 }
 
+export interface CladeLabel {
+  id: string;
+  /** 中文进化枝名 */
+  name: string;
+  /** 组成该进化枝的物种名，必须恰好覆盖一个完整进化枝 */
+  tips: string[];
+  /** 面向初学者的中文说明 */
+  description?: string;
+  /** 相对 MRCA 节点的水平偏移，用于避开其他标签 */
+  offsetX?: number;
+  /** 相对 MRCA 节点的垂直偏移，用于避开其他标签 */
+  offsetY?: number;
+}
+
 export interface TreeRecord {
   id: string;
   name: string;
@@ -43,6 +57,7 @@ export interface TreeRecord {
   newick: string;
   tree: Tree;
   metadata: Record<string, TaxonMeta>;
+  cladeLabels?: CladeLabel[];
   source: string;
   accent: string;
   compareWith?: string;

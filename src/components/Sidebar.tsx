@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import type { Story, TreeRecord, ViewSettings, WorkbenchMode } from '../types';
+import type { CladeLabel, Story, TreeRecord, ViewSettings, WorkbenchMode } from '../types';
 import type { LegendItem } from '../lib/palette';
 
 interface SidebarProps {
@@ -24,6 +24,7 @@ interface SidebarProps {
   story: Story | null;
   stepIndex: number;
   compareId: string;
+  cladeLabels: CladeLabel[];
   legend: LegendItem[];
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +36,7 @@ interface SidebarProps {
   onExitStory: () => void;
   onOpenCompare: () => void;
   onCompareId: (id: string) => void;
+  onCladeFocus: (tips: string[]) => void;
 }
 
 export function Sidebar({
@@ -45,6 +47,7 @@ export function Sidebar({
   story,
   stepIndex,
   compareId,
+  cladeLabels,
   legend,
   isOpen,
   onClose,
@@ -56,6 +59,7 @@ export function Sidebar({
   onExitStory,
   onOpenCompare,
   onCompareId,
+  onCladeFocus,
 }: SidebarProps) {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -340,6 +344,29 @@ export function Sidebar({
                 <RotateCcw size={13} />
                 恢复默认视图
               </button>
+            </section>
+          )}
+
+          {cladeLabels.length > 0 && mode !== 'compare' && (
+            <section className="sidebar-section">
+              <div className="sidebar-heading">
+                <span>主要进化枝</span>
+                <span>{cladeLabels.length}</span>
+              </div>
+              <div className="clade-list">
+                {cladeLabels.map((clade) => (
+                  <button
+                    key={clade.id}
+                    className="clade-list__item"
+                    onClick={() => onCladeFocus(clade.tips)}
+                    title={clade.description}
+                  >
+                    <span className="clade-list__dot" />
+                    <span>{clade.name}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="legend-help">点击名称可定位到该进化枝；矩形布局中标签会贴在分支旁。</p>
             </section>
           )}
 

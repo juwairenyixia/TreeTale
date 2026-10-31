@@ -71,11 +71,10 @@ export function getMrca(tree: Tree, tipNames: string[]): PhyloNode | undefined {
   const tips = tipNames.map((name) => findTip(tree, name)).filter(Boolean) as PhyloNode[];
   if (!tips.length) return undefined;
   const path = pathToRoot(tips[0]);
-  let candidate: PhyloNode | undefined;
   for (const ancestor of path) {
-    if (tips.every((tip) => isAncestor(ancestor, tip))) candidate = ancestor;
+    if (tips.every((tip) => isAncestor(ancestor, tip))) return ancestor;
   }
-  return candidate;
+  return undefined;
 }
 
 export function ancestorIdSet(node: PhyloNode | undefined): Set<string> {

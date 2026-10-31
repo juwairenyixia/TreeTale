@@ -11,9 +11,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import type { PhyloNode, Story, Tree, WorkbenchMode, TaxonMeta } from '../types';
+import type { CladeLabel, PhyloNode, Story, Tree, WorkbenchMode, TaxonMeta } from '../types';
 import type { TreeComparison } from '../lib/rf';
-import { displayName, descendantTips, pathToRoot, taxonLabel } from '../lib/tree';
+import { displayName, descendantTips, getMrca, pathToRoot, taxonLabel } from '../lib/tree';
 import { formatBranchLength } from '../lib/newick';
 import { formatRf } from '../lib/rf';
 import { supportColor } from '../lib/palette';
@@ -26,6 +26,7 @@ interface InspectorProps {
   comparison?: TreeComparison | null;
   compareNames?: { left: string; right: string };
   story?: Story | null;
+  cladeLabels?: CladeLabel[];
   stepIndex: number;
   onStoryStep: (index: number) => void;
   onSelectTip: (name: string) => void;
@@ -44,6 +45,7 @@ export function Inspector({
   comparison,
   compareNames,
   story,
+  cladeLabels = [],
   stepIndex,
   onStoryStep,
   onSelectTip,
@@ -221,6 +223,9 @@ export function Inspector({
     const tips = descendantTips(selectedNode);
     const isTip = !selectedNode.children.length;
     const support = selectedNode.support;
+    const selectedCladeLabel = !isTip
+      ? cladeLabels.find((label) => getMrca(tree, label.tips)?.id === selectedNode.id)
+      : undefined;
     return (
       <aside className="inspector">
         <div className="inspector__head">
@@ -230,7 +235,7 @@ export function Inspector({
 
         <div className="node-hero">
           <span className="node-hero__type">{isTip ? '叶节点 / 物种' : '内部节点 / 共同祖先'}</span>
-          <h2>{displayName(selectedNode, metadata)}</h2>
+          <h2>{isTip ? displayName(selectedNode, metadata) : (selectedCladeLabel?.name ?? '共同祖先')}</h2>
           {selectedNode.name && isTip && (
             <p className="scientific">学名（拉丁名）：{selectedNode.name.replace(/_/g, ' ')}</p>
           )}
@@ -242,6 +247,7 @@ export function Inspector({
               <span className="soft-badge">{metadata[selectedNode.name!]?.habitat}</span>
             )}
             {selectedNode.collapsed && <span className="soft-badge">已折叠的进化枝</span>}
+            {selectedCladeLabel && <span className="soft-badge">主要进化枝</span>}
           </div>
         </div>
 
@@ -318,10 +324,10 @@ export function Inspector({
           <div className="inspector-note inspector-note--annotation">
             <BookOpen size={15} />
             <div>
-              <strong>这个节点是什么？</strong>
+              <strong>{selectedCladeLabel ? `${selectedCladeLabel.name}是什么？` : '这个节点是什么？'}</strong>
               <p>
-                它代表一个共同祖先。它的所有后代物种，就是上面列出的那些。
-                支持度越高，说明这组物种“聚在一起”的证据越强。
+                {selectedCladeLabel?.description ??
+                  '它代表一个共同祖先。它的所有后代物种，就是上面列出的那些。支持度越高，说明这组物种“聚在一起”的证据越强。'}
               </p>
             </div>
           </div>

@@ -141,8 +141,9 @@ export function Workbench({
         ladderize: true,
         colorBy: current.colorBy === 'none' ? 'group' : current.colorBy,
       }));
+      setSelectedId(null);
     }
-  }, [mode, storyId]);
+  }, [mode, storyId, stepIndex]);
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -173,6 +174,18 @@ export function Workbench({
     if (tip) {
       setSelectedId(tip.id);
       setInspectorOpen(true);
+    }
+  };
+
+  const handleCladeFocus = (tips: string[]) => {
+    if (settings.supportThreshold !== 0) {
+      setSettings((current) => ({ ...current, supportThreshold: 0 }));
+    }
+    const mrca = getMrca(active.tree, tips);
+    if (mrca) {
+      setSelectedId(mrca.id);
+      setInspectorOpen(true);
+      setSidebarOpen(false);
     }
   };
 
@@ -266,6 +279,7 @@ export function Workbench({
         story={story}
         stepIndex={stepIndex}
         compareId={compareId}
+        cladeLabels={active.cladeLabels ?? []}
         legend={colorScale.legend}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -277,6 +291,7 @@ export function Workbench({
         onExitStory={() => onMode('explore')}
         onOpenCompare={handleOpenCompare}
         onCompareId={setCompareId}
+        onCladeFocus={handleCladeFocus}
       />
 
       <div className="workbench__main">
@@ -395,6 +410,7 @@ export function Workbench({
               search={search}
               storyFocusId={storyFocus?.id ?? null}
               storyActive={mode === 'story'}
+              cladeLabels={active.cladeLabels ?? []}
               accent={active.accent}
               svgRef={svgRef}
               resetToken={0}
@@ -430,6 +446,7 @@ export function Workbench({
             compareRecord ? { left: active.name, right: compareRecord.name } : undefined
           }
           story={story}
+          cladeLabels={active.cladeLabels ?? []}
           stepIndex={stepIndex}
           onStoryStep={handleStoryStep}
           onSelectTip={handleSelectTip}

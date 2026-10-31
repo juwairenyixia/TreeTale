@@ -1,9 +1,9 @@
 import { Maximize2, Minus, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, RefObject } from 'react';
-import type { TaxonMeta, Tree, ViewSettings } from '../types';
+import type { CladeLabel, TaxonMeta, Tree, ViewSettings } from '../types';
 import { layoutTree } from '../lib/layout';
-import { displayName, maxDistance, pathToRoot, taxonLabel, walk } from '../lib/tree';
+import { displayName, getMrca, maxDistance, pathToRoot, taxonLabel, walk } from '../lib/tree';
 import { supportColor } from '../lib/palette';
 import type { ColorScale } from '../lib/palette';
 
@@ -17,6 +17,7 @@ interface TreeCanvasProps {
   search: string;
   storyFocusId?: string | null;
   storyActive?: boolean;
+  cladeLabels?: CladeLabel[];
   accent: string;
   svgRef: RefObject<SVGSVGElement | null>;
   resetToken: number;
@@ -54,6 +55,7 @@ export function TreeCanvas({
   search,
   storyFocusId,
   storyActive = false,
+  cladeLabels = [],
   accent,
   svgRef,
   resetToken,
@@ -175,6 +177,79 @@ export function TreeCanvas({
     if (node) walk(node, (child) => ids.add(child.id));
     return ids;
   }, [storyActive, storyFocusId, tree.nodes]);
+
+  const cladeItems = useMemo(() => {
+    if (!cladeLabels.length || settings.supportThreshold !== 0) return [];
+    const layoutById = new Map(layout.nodes.map((node) => [node.id, node]));
+    const tipXByName = new Map(
+      layout.tips.filter((tip) => tip.name).map((tip) => [tip.name as string, tip.x]),
+    );
+
+    const items = cladeLabels
+      .map((label) => {
+        const mrca = getMrca(tree, label.tips);
+        if (!mrca || !mrca.children.length) return null;
+        const descendants = new Set<string>();
+        walk(mrca, (node) => {
+          if (!node.children.length && node.name) descendants.add(node.name);
+        });
+        if (
+          descendants.size !== label.tips.length ||
+          !label.tips.every((tip) => descendants.has(tip))
+        ) {
+          return null;
+        }
+        const layoutNode = layoutById.get(mrca.id);
+        if (!layoutNode) return null;
+        const cladeTipXs = label.tips
+          .map((tip) => tipXByName.get(tip))
+          .filter((x): x is number => x !== undefined);
+        const tipLabelBoundary = (cladeTipXs.length ? Math.min(...cladeTipXs) : layout.width) - 4;
+        const width = Math.max(52, label.name.length * 12.5 + 22);
+        const height = 22;
+        const x = clamp(
+          layoutNode.x + (label.offsetX ?? 10),
+          6,
+          Math.max(6, tipLabelBoundary - width),
+        );
+        const y = clamp(
+          layoutNode.y + (label.offsetY ?? -28),
+          6,
+          layout.height - height - 6,
+        );
+        return {
+          label,
+          node: layoutNode,
+          x,
+          y,
+          width,
+          height,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .sort((a, b) => a.y - b.y);
+
+    const placed: Array<{ x: number; y: number; width: number; height: number }> = [];
+    for (const item of items) {
+      let attempts = 0;
+      while (
+        attempts < 14 &&
+        placed.some(
+          (other) =>
+            item.x < other.x + other.width + 4 &&
+            item.x + item.width + 4 > other.x &&
+            item.y < other.y + other.height + 4 &&
+            item.y + item.height + 4 > other.y,
+        )
+      ) {
+        item.y = clamp(item.y + 26, 6, layout.height - item.height - 6);
+        attempts += 1;
+      }
+      placed.push({ x: item.x, y: item.y, width: item.width, height: item.height });
+    }
+
+    return items;
+  }, [cladeLabels, settings.supportThreshold, layout, tree]);
 
   const dimmed = (nodeId: string) => {
     if (storyActive && storyIds.size > 0) return !storyIds.has(nodeId);
@@ -446,6 +521,51 @@ export function TreeCanvas({
           })}
         </g>
 
+        {settings.layout === 'rectangular' && !narrow && cladeItems.length > 0 && (
+          <g className="clade-annotations">
+            {cladeItems.map((item) => {
+              const inStory = storyActive && storyIds.has(item.node.id);
+              const muted = storyActive && storyIds.size > 0 && !inStory;
+              return (
+              <g key={item.label.id}>
+                <path
+                  className="clade-label__leader"
+                  d={`M ${item.node.x} ${item.node.y} L ${item.x + 6} ${item.y + item.height / 2}`}
+                />
+                <g
+                  className={`clade-label ${selectedId === item.node.id || inStory ? 'is-active' : ''} ${
+                    muted ? 'is-muted' : ''
+                  }`}
+                  transform={`translate(${item.x} ${item.y})`}
+                  data-tree-interactive="true"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${item.label.name}进化枝`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(item.node.id);
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') onSelect(item.node.id);
+                  }}
+                >
+                  <title>
+                    {item.label.name}
+                    {item.label.description ? `：${item.label.description}` : ''}
+                  </title>
+                  <rect width={item.width} height={item.height} rx={11} />
+                  <circle cx={10} cy={item.height / 2} r={3.2} />
+                  <text x={18} y={item.height / 2 + 4}>
+                    {item.label.name}
+                  </text>
+                </g>
+              </g>
+              );
+            })}
+          </g>
+        )}
+
         {showScale && (
           <g className="tree-scale">
             <line
@@ -469,6 +589,24 @@ export function TreeCanvas({
           </g>
         )}
       </svg>
+
+      {settings.layout === 'circular' && cladeItems.length > 0 && (
+        <div className="canvas-clade-strip">
+          <span className="mono-label">主要进化枝</span>
+          <div className="canvas-clade-strip__items">
+            {cladeItems.map((item) => (
+              <button
+                key={item.label.id}
+                className="canvas-clade-chip"
+                onClick={() => onSelect(item.node.id)}
+                title={item.label.description}
+              >
+                {item.label.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="canvas-status">
         <span>{tree.leaves.length} 个叶节点</span>

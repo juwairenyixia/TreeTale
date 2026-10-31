@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildExampleTrees } from '../data/examples';
-import { displayName, taxonLabel } from './tree';
-import { findTip } from './tree';
+import { descendantTipNames, displayName, findTip, getMrca, taxonLabel } from './tree';
 
 describe('Chinese annotations', () => {
   it('gives every built-in species a Chinese name and a simple Chinese note', () => {
@@ -31,5 +30,24 @@ describe('Chinese annotations', () => {
     const human = findTip(record.tree, 'Homo_sapiens')!;
     expect(displayName(human, record.metadata)).toBe('智人');
     expect(taxonLabel('Unknown_species', record.metadata)).toBe('Unknown species');
+  });
+
+  it('attaches every clade label to a complete, non-trivial clade', () => {
+    for (const record of buildExampleTrees()) {
+      const labels = record.cladeLabels ?? [];
+      expect(labels.length).toBeGreaterThan(0);
+      expect(new Set(labels.map((label) => label.id)).size).toBe(labels.length);
+
+      for (const label of labels) {
+        expect(label.tips.length).toBeGreaterThan(1);
+        const mrca = getMrca(record.tree, label.tips);
+        expect(mrca, `${record.id} / ${label.name} 找不到 MRCA`).toBeTruthy();
+        const descendants = new Set(descendantTipNames(mrca!));
+        expect(descendants.size).toBe(label.tips.length);
+        for (const tip of label.tips) {
+          expect(descendants.has(tip), `${record.id} / ${label.name} 不是完整进化枝`).toBe(true);
+        }
+      }
+    }
   });
 });

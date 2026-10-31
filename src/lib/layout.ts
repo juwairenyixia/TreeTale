@@ -76,7 +76,7 @@ function rectangularLayout(tree: Tree, options: LayoutOptions): TreeLayout {
   const maxDist = Math.max(0, ...Array.from(distanceMap.values()));
   const maxDep = Math.max(1, maxDepth(tree.root));
   const useDistance = options.branchMode === 'phylogram' && maxDist > 0;
-  const span = Math.max(1, useDistance ? maxDist : maxDep);
+  const span = useDistance ? Math.max(0.000001, maxDist) : Math.max(1, maxDep);
   const rowHeight = tree.leaves.length > 1 ? (yEnd - yStart) / (tree.leaves.length - 1) : 0;
 
   const nodes: LayoutNode[] = [];
