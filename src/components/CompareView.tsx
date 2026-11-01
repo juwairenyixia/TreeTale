@@ -56,6 +56,19 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
 
   const leftTips = new Map(leftLayout.tips.map((tip) => [taxonKey(tip.name ?? ''), tip]));
   const rightTips = new Map(rightLayout.tips.map((tip) => [taxonKey(tip.name ?? ''), tip]));
+  const rightToLeftKey = new Map(
+    comparison.matchedPairs.map((pair) => [taxonKey(pair.right), taxonKey(pair.left)]),
+  );
+  const pairs = comparison.matchedPairs
+    .map((pair) => ({
+      key: taxonKey(pair.left),
+      leftTip: leftTips.get(taxonKey(pair.left)),
+      rightTip: rightTips.get(taxonKey(pair.right)),
+    }))
+    .filter(
+      (pair): pair is { key: string; leftTip: NonNullable<typeof pair.leftTip>; rightTip: NonNullable<typeof pair.rightTip> } =>
+        Boolean(pair.leftTip && pair.rightTip),
+    );
 
   const links = comparison.leftOnly.length + comparison.rightOnly.length;
   const hoveredKey = hovered ? taxonKey(hovered) : null;
@@ -75,6 +88,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
         ref={svgRef}
         className="compare-canvas"
         viewBox={`0 0 ${WIDTH} ${height}`}
+        data-full-viewbox={`0 0 ${WIDTH} ${height}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="两棵系统发育树的并排比较"
@@ -116,7 +130,8 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
             </g>
           ))}
           {leftLayout.tips.map((tip) => {
-            const active = hoveredKey === taxonKey(tip.name ?? '');
+            const key = taxonKey(tip.name ?? '');
+            const active = hoveredKey === key;
             return (
               <g
                 key={tip.id}
@@ -164,12 +179,13 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
             </g>
           ))}
           {rightLayout.tips.map((tip) => {
-            const active = hoveredKey === taxonKey(tip.name ?? '');
+            const key = taxonKey(tip.name ?? '');
+            const active = hoveredKey === rightToLeftKey.get(key);
             return (
               <g
                 key={tip.id}
                 className={active ? 'is-hot' : ''}
-                onMouseEnter={() => setHovered(tip.name ?? null)}
+                onMouseEnter={() => setHovered(rightToLeftKey.get(key) ?? key)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <circle cx={tip.x} cy={tip.y} r={active ? 4.5 : 2.9} className="compare-tip" />
@@ -190,9 +206,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
         <g className="tangle-links">
           {comparison.unmatchedLeft.length === 0 &&
             comparison.unmatchedRight.length === 0 &&
-            [...leftTips.entries()].map(([key, leftTip]) => {
-              const rightTip = rightTips.get(key);
-              if (!rightTip) return null;
+            pairs.map(({ key, leftTip, rightTip }) => {
               const active = hoveredKey === key;
               return (
                 <path
@@ -205,9 +219,7 @@ export function CompareView({ left, right, comparison, svgRef }: CompareViewProp
         </g>
 
         <g className="tangle-dots">
-          {[...leftTips.entries()].map(([key, leftTip]) => {
-            const rightTip = rightTips.get(key);
-            if (!rightTip) return null;
+          {pairs.map(({ key, leftTip, rightTip }) => {
             const active = hoveredKey === key;
             return (
               <g key={key} className={active ? 'is-hot' : ''}>

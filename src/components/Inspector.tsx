@@ -8,10 +8,19 @@ import {
   GitCompareArrows,
   Info,
   MousePointerClick,
+  Pencil,
   Sparkles,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import type { CladeLabel, PhyloNode, Story, Tree, WorkbenchMode, TaxonMeta } from '../types';
+import type {
+  CladeLabel,
+  PhyloNode,
+  Story,
+  SupportType,
+  Tree,
+  WorkbenchMode,
+  TaxonMeta,
+} from '../types';
 import type { TreeComparison } from '../lib/rf';
 import { displayName, descendantTips, getMrca, pathToRoot, taxonLabel } from '../lib/tree';
 import { formatBranchLength } from '../lib/newick';
@@ -27,9 +36,11 @@ interface InspectorProps {
   compareNames?: { left: string; right: string };
   story?: Story | null;
   cladeLabels?: CladeLabel[];
+  supportType?: SupportType;
   stepIndex: number;
   onStoryStep: (index: number) => void;
   onSelectTip: (name: string) => void;
+  onEditTaxon?: (name: string) => void;
   onOpenCompare?: () => void;
 }
 
@@ -46,9 +57,11 @@ export function Inspector({
   compareNames,
   story,
   cladeLabels = [],
+  supportType = 'unknown',
   stepIndex,
   onStoryStep,
   onSelectTip,
+  onEditTaxon,
   onOpenCompare,
 }: InspectorProps) {
   if (mode === 'story' && story) {
@@ -226,6 +239,12 @@ export function Inspector({
     const selectedCladeLabel = !isTip
       ? cladeLabels.find((label) => getMrca(tree, label.tips)?.id === selectedNode.id)
       : undefined;
+    const supportTypeLabel =
+      supportType === 'bootstrap'
+        ? '自举值'
+        : supportType === 'posterior'
+          ? '后验概率'
+          : '类型未提供';
     return (
       <aside className="inspector">
         <div className="inspector__head">
@@ -272,7 +291,7 @@ export function Inspector({
             <strong style={{ color: support !== undefined ? supportColor(support) : undefined }}>
               {support !== undefined ? Math.round(support) : '—'}
             </strong>
-            <small>自举值 / 后验概率</small>
+            <small>{supportTypeLabel}</small>
           </div>
         </div>
 
@@ -318,6 +337,13 @@ export function Inspector({
               <p>{metadata[selectedNode.name!]?.note}</p>
             </div>
           </div>
+        )}
+
+        {isTip && selectedNode.name && onEditTaxon && (
+          <button className="annotation-edit-button" onClick={() => onEditTaxon(selectedNode.name!)}>
+            <Pencil size={14} />
+            {metadata[selectedNode.name]?.cn ? '编辑中文注释' : '添加中文注释'}
+          </button>
         )}
 
         {!isTip && (

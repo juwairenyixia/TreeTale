@@ -2,6 +2,7 @@ export type LayoutKind = 'rectangular' | 'circular';
 export type BranchMode = 'phylogram' | 'cladogram';
 export type ColorMode = 'group' | 'habitat' | 'none';
 export type WorkbenchMode = 'explore' | 'compare' | 'story';
+export type SupportType = 'bootstrap' | 'posterior' | 'unknown';
 
 export interface PhyloNode {
   id: string;
@@ -62,6 +63,14 @@ export interface TreeRecord {
   accent: string;
   compareWith?: string;
   custom?: boolean;
+  /** 内部节点数值的含义 */
+  supportType?: SupportType;
+  /** 枝长的单位说明 */
+  branchUnit?: string;
+  /** 建树方法或数据说明 */
+  method?: string;
+  /** 导入时间（ISO 字符串） */
+  importedAt?: string;
 }
 
 export interface ViewSettings {

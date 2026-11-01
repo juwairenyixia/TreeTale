@@ -1,5 +1,22 @@
+export type ExportBackground = 'paper' | 'white' | 'transparent';
+
+export interface ExportOptions {
+  width: number;
+  height: number;
+  viewBox?: string;
+  background?: ExportBackground;
+  scale?: number;
+  showSupport?: boolean;
+  showCladeLabels?: boolean;
+}
+
+const BACKGROUNDS: Record<ExportBackground, string | null> = {
+  paper: '#f7f3e9',
+  white: '#ffffff',
+  transparent: null,
+};
+
 const SVG_STYLE = `
-  svg { background: #f7f3e9; }
   text { font-family: 'Manrope', 'Segoe UI', sans-serif; }
   .tree-link { fill: none; stroke: rgba(16,35,28,.44); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .tree-link--highlight { stroke: #1f6f5c; stroke-width: 2.8; }
@@ -26,25 +43,56 @@ const SVG_STYLE = `
   .center-label { font-family: 'Fraunces', Georgia, serif; font-size: 18px; fill: rgba(16,35,28,.28); font-style: italic; }
 `;
 
-function cloneSvg(svg: SVGSVGElement, width: number, height: number): SVGSVGElement {
+export function parseViewBox(viewBox: string): { width: number; height: number } | null {
+  const values = viewBox.trim().split(/\s+/).map(Number);
+  if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) return null;
+  return { width: Math.abs(values[2]), height: Math.abs(values[3]) };
+}
+
+export function getFullExportBox(svg: SVGSVGElement): {
+  width: number;
+  height: number;
+  viewBox: string;
+} | null {
+  const viewBox = svg.getAttribute('data-full-viewbox');
+  if (!viewBox) return null;
+  const size = parseViewBox(viewBox);
+  if (!size) return null;
+  return { ...size, viewBox };
+}
+
+function cloneSvg(svg: SVGSVGElement, options: ExportOptions): SVGSVGElement {
   const clone = svg.cloneNode(true) as SVGSVGElement;
+  const background = options.background ?? 'paper';
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-  clone.setAttribute('width', String(width));
-  clone.setAttribute('height', String(height));
+  clone.setAttribute('width', String(options.width));
+  clone.setAttribute('height', String(options.height));
+  if (options.viewBox) clone.setAttribute('viewBox', options.viewBox);
   clone.removeAttribute('style');
 
   const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
   style.textContent = SVG_STYLE;
   clone.insertBefore(style, clone.firstChild);
 
-  const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  background.setAttribute('x', '0');
-  background.setAttribute('y', '0');
-  background.setAttribute('width', String(width));
-  background.setAttribute('height', String(height));
-  background.setAttribute('fill', '#f7f3e9');
-  clone.insertBefore(background, style.nextSibling);
+  if (!options.showSupport) {
+    clone.querySelectorAll('.support-label').forEach((node) => node.remove());
+  }
+  if (!options.showCladeLabels) {
+    clone.querySelectorAll('.clade-annotations').forEach((node) => node.remove());
+  }
+
+  const fill = BACKGROUNDS[background];
+  if (fill) {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const size = parseViewBox(options.viewBox ?? `0 0 ${options.width} ${options.height}`);
+    rect.setAttribute('x', '0');
+    rect.setAttribute('y', '0');
+    rect.setAttribute('width', String(size?.width ?? options.width));
+    rect.setAttribute('height', String(size?.height ?? options.height));
+    rect.setAttribute('fill', fill);
+    clone.insertBefore(rect, style.nextSibling);
+  }
 
   return clone;
 }
@@ -70,8 +118,14 @@ export function slugify(value: string): string {
   );
 }
 
-export function exportSvg(svg: SVGSVGElement, filename: string, width: number, height: number): void {
-  const clone = cloneSvg(svg, width, height);
+export function exportSvgDataUrl(svg: SVGSVGElement, options: ExportOptions): string {
+  const clone = cloneSvg(svg, options);
+  const source = new XMLSerializer().serializeToString(clone);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+}
+
+export function exportSvg(svg: SVGSVGElement, filename: string, options: ExportOptions): void {
+  const clone = cloneSvg(svg, options);
   const source = new XMLSerializer().serializeToString(clone);
   downloadBlob(new Blob([source], { type: 'image/svg+xml;charset=utf-8' }), `${slugify(filename)}.svg`);
 }
@@ -79,28 +133,31 @@ export function exportSvg(svg: SVGSVGElement, filename: string, width: number, h
 export async function exportPng(
   svg: SVGSVGElement,
   filename: string,
-  width: number,
-  height: number,
+  options: ExportOptions,
 ): Promise<void> {
   await document.fonts.ready;
-  const clone = cloneSvg(svg, width, height);
+  const clone = cloneSvg(svg, options);
   const source = new XMLSerializer().serializeToString(clone);
   const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
 
   await new Promise<void>((resolve, reject) => {
     const image = new Image();
     image.onload = () => {
-      const scale = Math.min(2, 4096 / Math.max(width, height));
+      const desiredScale = Math.max(1, Math.min(4, options.scale ?? 2));
+      const scale = Math.min(desiredScale, 4096 / Math.max(options.width, options.height));
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(width * scale);
-      canvas.height = Math.round(height * scale);
+      canvas.width = Math.round(options.width * scale);
+      canvas.height = Math.round(options.height * scale);
       const context = canvas.getContext('2d');
       if (!context) {
         reject(new Error('无法创建画布'));
         return;
       }
-      context.fillStyle = '#f7f3e9';
-      context.fillRect(0, 0, canvas.width, canvas.height);
+      const fill = BACKGROUNDS[options.background ?? 'paper'];
+      if (fill) {
+        context.fillStyle = fill;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
       context.drawImage(image, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => {
         if (!blob) {

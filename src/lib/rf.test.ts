@@ -44,6 +44,23 @@ describe('compareTrees', () => {
     expect(result.identical).toBe(false);
   });
 
+  it('matches aliased taxon names before comparing clades', () => {
+    const left = parseNewick('((Homo_sapiens,Pan_troglodytes),Mus_musculus);');
+    const right = parseNewick('((Human,Chimp),Mouse);');
+    const result = compareTrees(left, right, {
+      aliases: {
+        Homo_sapiens: 'Human',
+        Pan_troglodytes: 'Chimp',
+        Mus_musculus: 'Mouse',
+      },
+    });
+    expect(result.sharedTaxa).toBe(3);
+    expect(result.unmatchedLeft).toHaveLength(0);
+    expect(result.unmatchedRight).toHaveLength(0);
+    expect(result.matchedPairs).toHaveLength(3);
+    expect(result.rf).toBe(0);
+  });
+
   it('compares the two 26-taxon vertebrate examples without unmatched taxa', () => {
     const records = buildExampleTrees();
     const species = records.find((record) => record.id === 'vertebrates')!;

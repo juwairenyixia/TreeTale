@@ -106,7 +106,7 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
           </div>
           <p className="hero__note">
             <span className="status-dot" />
-            无需服务器 · 拖入树文件即可开始 · 数据不会离开浏览器
+            无需服务器 · 支持 Newick / NEXUS · 注释与项目自动保存在本地
           </p>
         </div>
 
@@ -191,25 +191,25 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
             <span className="feature-item__num">01</span>
             <MousePointer2 size={21} />
             <h3>解析</h3>
-            <p>严格但友好的 Newick parser。支持枝长、支持度、引号名称和注释。</p>
+            <p>Newick 与 NEXUS 多树导入。支持枝长、支持度、引号名称和注释。</p>
           </div>
           <div className="feature-item">
             <span className="feature-item__num">02</span>
             <Search size={21} />
             <h3>探索</h3>
-            <p>缩放、搜索、折叠低支持分支，点击任意节点查看它的进化枝。</p>
+            <p>缩放、搜索、折叠分支；点击节点编辑中文注释，项目自动保存。</p>
           </div>
           <div className="feature-item">
             <span className="feature-item__num">03</span>
             <GitCompareArrows size={21} />
             <h3>比较</h3>
-            <p>两棵树并排对照，用连线追踪同一物种，用 RF 距离量化拓扑差异。</p>
+            <p>两棵树并排对照；支持物种别名、共同物种裁剪和 RF 距离。</p>
           </div>
           <div className="feature-item">
             <span className="feature-item__num">04</span>
             <BookOpen size={21} />
             <h3>讲述</h3>
-            <p>把树变成一步步的故事，再导出 SVG，放进报告、课件或论文。</p>
+            <p>把树变成故事，再用出版级导出生成 SVG / PNG，放进报告或课件。</p>
           </div>
         </div>
       </section>
@@ -323,6 +323,8 @@ export function Home({ records, onWorkbench, onOpenTree, onOpenStory }: HomeProp
               <span>TypeScript</span>
               <span>SVG</span>
               <span>Newick</span>
+              <span>NEXUS</span>
+              <span>IndexedDB</span>
               <span>GitHub Pages</span>
             </div>
           </div>

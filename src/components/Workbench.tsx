@@ -14,17 +14,23 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { TreeRecord, ViewSettings, WorkbenchMode } from '../types';
+import type { TaxonMeta, TreeRecord, ViewSettings, WorkbenchMode } from '../types';
 import { stories } from '../data/examples';
-import { prepareTree, getMrca, findTip, taxonKey, displayName } from '../lib/tree';
+import { prepareTree, getMrca, findTip, taxonKey, displayName, pruneTree } from '../lib/tree';
 import { compareTrees } from '../lib/rf';
 import { buildColorScale } from '../lib/palette';
-import { exportPng, exportSvg, downloadText } from '../lib/export';
+import { downloadText, exportPng, exportSvg, parseViewBox } from '../lib/export';
 import { toNewick } from '../lib/newick';
+import { buildAnnotationCsv, applyAnnotationCsv } from '../lib/csv';
+import { buildProjectFile } from '../lib/project';
+import { loadViewSettings, saveViewSettings } from '../lib/storage';
 import { Sidebar } from './Sidebar';
 import { TreeCanvas } from './TreeCanvas';
 import { CompareView } from './CompareView';
 import { Inspector } from './Inspector';
+import { AnnotationDialog } from './AnnotationDialog';
+import { ExportDialog } from './ExportDialog';
+import { AliasDialog } from './AliasDialog';
 
 interface WorkbenchProps {
   records: TreeRecord[];
@@ -35,6 +41,12 @@ interface WorkbenchProps {
   onMode: (mode: WorkbenchMode) => void;
   onStoryId: (id: string) => void;
   onUpload: (file: File) => void;
+  onProjectImport: (file: File) => void;
+  onUpdateTaxon: (id: string, taxon: string, patch: TaxonMeta) => void;
+  onReplaceMetadata: (id: string, metadata: Record<string, TaxonMeta>) => void;
+  onProvenanceChange: (id: string, patch: Partial<TreeRecord>) => void;
+  projectSettings?: { id: string; settings: ViewSettings } | null;
+  onProjectSettingsApplied?: () => void;
   notify: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -56,18 +68,31 @@ export function Workbench({
   onMode,
   onStoryId,
   onUpload,
+  onProjectImport,
+  onUpdateTaxon,
+  onReplaceMetadata,
+  onProvenanceChange,
+  projectSettings,
+  onProjectSettingsApplied,
   notify,
 }: WorkbenchProps) {
   const active = records.find((record) => record.id === activeId) ?? records[0];
   const story = stories.find((item) => item.id === storyId) ?? null;
-  const [settings, setSettings] = useState<ViewSettings>(defaultSettings);
+  const [settings, setSettings] = useState<ViewSettings>(
+    () => loadViewSettings() ?? defaultSettings,
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [stepIndex, setStepIndex] = useState(0);
   const [compareId, setCompareId] = useState('');
+  const [compareAliases, setCompareAliases] = useState<Record<string, string>>({});
+  const [comparePrune, setComparePrune] = useState(false);
+  const [aliasOpen, setAliasOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [editingTaxon, setEditingTaxon] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
@@ -88,9 +113,34 @@ export function Workbench({
   const selectedNode = displayTree.nodes.find((node) => node.id === selectedId) ?? null;
   const compareRecord = records.find((record) => record.id === compareId) ?? null;
   const comparison = useMemo(
-    () => (compareRecord ? compareTrees(active.tree, compareRecord.tree) : null),
-    [active.tree, compareRecord],
+    () =>
+      compareRecord
+        ? compareTrees(active.tree, compareRecord.tree, { aliases: compareAliases })
+        : null,
+    [active.tree, compareRecord, compareAliases],
   );
+
+  const prunedCompare = useMemo(() => {
+    if (!compareRecord || !comparison || !comparePrune) return null;
+    if (!comparison.unmatchedLeft.length && !comparison.unmatchedRight.length) return null;
+    const leftNames = comparison.matchedPairs.map((pair) => pair.left);
+    const rightNames = comparison.matchedPairs.map((pair) => pair.right);
+    const leftTree = pruneTree(active.tree, leftNames);
+    const rightTree = pruneTree(compareRecord.tree, rightNames);
+    if (!leftTree || !rightTree) return null;
+    return { leftTree, rightTree };
+  }, [active.tree, compareRecord, comparePrune, comparison]);
+
+  const leftDisplayRecord = prunedCompare ? { ...active, tree: prunedCompare.leftTree } : active;
+  const rightDisplayRecord =
+    prunedCompare && compareRecord ? { ...compareRecord, tree: prunedCompare.rightTree } : compareRecord;
+  const displayComparison = useMemo(() => {
+    if (!leftDisplayRecord || !rightDisplayRecord) return comparison;
+    if (!prunedCompare) return comparison;
+    return compareTrees(leftDisplayRecord.tree, rightDisplayRecord.tree, {
+      aliases: compareAliases,
+    });
+  }, [comparison, leftDisplayRecord, rightDisplayRecord, prunedCompare, compareAliases]);
 
   const currentStep = story?.steps[stepIndex] ?? null;
   const storyFocus = useMemo(() => {
@@ -103,6 +153,10 @@ export function Workbench({
     setSearch('');
     setSidebarOpen(false);
     setInspectorOpen(false);
+    setEditingTaxon(null);
+    setCompareAliases({});
+    setComparePrune(false);
+    setAliasOpen(false);
     const preferred =
       records.find((record) => record.id === active.compareWith)?.id ??
       records.find(
@@ -120,6 +174,22 @@ export function Workbench({
   useEffect(() => {
     if (storyId) setStepIndex(0);
   }, [storyId]);
+
+  useEffect(() => {
+    saveViewSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    if (!projectSettings || projectSettings.id !== active?.id) return;
+    setSettings(projectSettings.settings);
+    onProjectSettingsApplied?.();
+  }, [projectSettings, active?.id, onProjectSettingsApplied]);
+
+  useEffect(() => {
+    setCompareAliases({});
+    setComparePrune(false);
+    setAliasOpen(false);
+  }, [compareId]);
 
   useEffect(() => {
     const query = search.trim().toLowerCase();
@@ -215,20 +285,34 @@ export function Workbench({
 
   const currentSvgSize = () => {
     const svg = svgRef.current;
-    if (!svg) return { width: 1200, height: 800 };
+    if (!svg) return { width: 1200, height: 800, viewBox: '0 0 1200 800' };
     const box = svg.viewBox.baseVal;
+    const viewBox = `${box.x} ${box.y} ${box.width} ${box.height}`;
+    const size = parseViewBox(viewBox);
     return {
-      width: box.width || 1200,
-      height: box.height || 800,
+      width: size?.width ?? 1200,
+      height: size?.height ?? 800,
+      viewBox,
     };
   };
+
+  const exportName = () =>
+    mode === 'compare' && compareRecord
+      ? `${active.name}-vs-${compareRecord.name}`
+      : active.name;
 
   const handleExportSvg = () => {
     const svg = svgRef.current;
     if (!svg) return;
-    const { width, height } = currentSvgSize();
-    const name = mode === 'compare' && compareRecord ? `${active.name}-vs-${compareRecord.name}` : active.name;
-    exportSvg(svg, name, width, height);
+    const { width, height, viewBox } = currentSvgSize();
+    exportSvg(svg, exportName(), {
+      width,
+      height,
+      viewBox,
+      background: 'paper',
+      showSupport: true,
+      showCladeLabels: true,
+    });
     closeMenus();
     notify('SVG 已导出，可在 Illustrator / Inkscape 中继续编辑。', 'success');
   };
@@ -236,10 +320,17 @@ export function Workbench({
   const handleExportPng = async () => {
     const svg = svgRef.current;
     if (!svg) return;
-    const { width, height } = currentSvgSize();
-    const name = mode === 'compare' && compareRecord ? `${active.name}-vs-${compareRecord.name}` : active.name;
+    const { width, height, viewBox } = currentSvgSize();
     try {
-      await exportPng(svg, name, width, height);
+      await exportPng(svg, exportName(), {
+        width,
+        height,
+        viewBox,
+        background: 'paper',
+        scale: 2,
+        showSupport: true,
+        showCladeLabels: true,
+      });
       closeMenus();
       notify('PNG 已导出。', 'success');
     } catch {
@@ -254,20 +345,45 @@ export function Workbench({
   };
 
   const handleExportProject = () => {
-    const payload = {
-      name: active.name,
-      source: active.source,
-      newick: active.newick,
-      metadata: active.metadata,
-      settings,
-      search,
-    };
+    const payload = buildProjectFile(active, settings, search);
     downloadText(JSON.stringify(payload, null, 2), `${active.id}-treetale.json`, 'application/json');
     closeMenus();
     notify('项目 JSON 已导出。', 'success');
   };
 
+  const handleDownloadAnnotations = () => {
+    downloadText(
+      buildAnnotationCsv(active.tree, active.metadata),
+      `${active.id}-annotations.csv`,
+      'text/csv;charset=utf-8',
+    );
+    notify('注释 CSV 模板已下载。', 'success');
+  };
+
+  const handleImportAnnotations = async (file: File) => {
+    try {
+      const result = applyAnnotationCsv(await file.text(), active.tree, active.metadata);
+      if (result.errors.length && !result.matched) {
+        notify(`注释导入失败：${result.errors[0]}`, 'error');
+        return;
+      }
+      onReplaceMetadata(active.id, result.metadata);
+      const details = [
+        result.matched ? `匹配 ${result.matched} 条` : '',
+        result.unmatched.length ? `${result.unmatched.length} 条未匹配` : '',
+        result.errors.length ? `${result.errors.length} 行有问题` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      notify(`注释 CSV 已导入：${details || '没有可用数据'}。`, result.matched ? 'success' : 'error');
+    } catch (error) {
+      notify(`注释导入失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+    }
+  };
+
   const sharedCount = comparison?.sharedTaxa ?? 0;
+  const aliasCount = Object.keys(compareAliases).length;
+  const editingMetadata = editingTaxon ? active.metadata[editingTaxon] : undefined;
 
   return (
     <div className="workbench">
@@ -292,6 +408,14 @@ export function Workbench({
         onOpenCompare={handleOpenCompare}
         onCompareId={setCompareId}
         onCladeFocus={handleCladeFocus}
+        onDownloadAnnotations={handleDownloadAnnotations}
+        onImportAnnotations={handleImportAnnotations}
+        onImportProject={onProjectImport}
+        onProvenanceChange={(patch) => onProvenanceChange(active.id, patch)}
+        comparePrune={comparePrune}
+        onComparePrune={setComparePrune}
+        aliasCount={aliasCount}
+        onOpenAliases={() => setAliasOpen(true)}
       />
 
       <div className="workbench__main">
@@ -364,6 +488,15 @@ export function Workbench({
                     <Image size={15} />
                     <span><strong>PNG</strong><small>适合直接放入报告</small></span>
                   </button>
+                  <button
+                    onClick={() => {
+                      closeMenus();
+                      setExportDialogOpen(true);
+                    }}
+                  >
+                    <FileText size={15} />
+                    <span><strong>出版级导出…</strong><small>尺寸、背景、完整树</small></span>
+                  </button>
                   {mode !== 'compare' && (
                     <button onClick={handleExportNewick}>
                       <GitBranch size={15} />
@@ -389,11 +522,11 @@ export function Workbench({
         </div>
 
         <div className={`workbench__stage ${mode === 'compare' ? 'is-compare' : ''}`}>
-          {mode === 'compare' && compareRecord && comparison ? (
+          {mode === 'compare' && compareRecord && displayComparison ? (
             <CompareView
-              left={active}
-              right={compareRecord}
-              comparison={comparison}
+              left={leftDisplayRecord}
+              right={rightDisplayRecord ?? compareRecord}
+              comparison={displayComparison}
               svgRef={svgRef}
             />
           ) : (
@@ -411,6 +544,7 @@ export function Workbench({
               storyFocusId={storyFocus?.id ?? null}
               storyActive={mode === 'story'}
               cladeLabels={active.cladeLabels ?? []}
+              branchUnit={active.branchUnit}
               accent={active.accent}
               svgRef={svgRef}
               resetToken={0}
@@ -447,9 +581,11 @@ export function Workbench({
           }
           story={story}
           cladeLabels={active.cladeLabels ?? []}
+          supportType={active.supportType}
           stepIndex={stepIndex}
           onStoryStep={handleStoryStep}
           onSelectTip={handleSelectTip}
+          onEditTaxon={(name) => setEditingTaxon(name)}
           onOpenCompare={handleOpenCompare}
         />
       </div>
@@ -461,6 +597,42 @@ export function Workbench({
           onClick={() => {
             setSidebarOpen(false);
             setInspectorOpen(false);
+          }}
+        />
+      )}
+
+      <AnnotationDialog
+        open={Boolean(editingTaxon)}
+        taxonName={editingTaxon}
+        metadata={editingMetadata}
+        onClose={() => setEditingTaxon(null)}
+        onSave={(patch) => {
+          if (!editingTaxon) return;
+          onUpdateTaxon(active.id, editingTaxon, patch);
+          setEditingTaxon(null);
+          notify('中文注释已保存。', 'success');
+        }}
+      />
+
+      <ExportDialog
+        open={exportDialogOpen}
+        name={exportName()}
+        svgRef={svgRef}
+        onClose={() => setExportDialogOpen(false)}
+        notify={notify}
+      />
+
+      {compareRecord && (
+        <AliasDialog
+          open={aliasOpen}
+          left={active}
+          right={compareRecord}
+          aliases={compareAliases}
+          onClose={() => setAliasOpen(false)}
+          onSave={(aliases) => {
+            setCompareAliases(aliases);
+            const count = Object.keys(aliases).length;
+            notify(count ? `已保存 ${count} 组物种别名。` : '已清除物种别名。', 'success');
           }}
         />
       )}

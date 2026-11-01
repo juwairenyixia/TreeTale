@@ -663,6 +663,9 @@ export const exampleSpecs: ExampleSpec[] = [
     cladeLabels: vertebrateCladeLabels,
     source: '教学示例 · 拓扑依据公开系统发育关系整理，分支长度用于可视化演示',
     accent: '#d8f27a',
+    supportType: 'bootstrap',
+    branchUnit: '每个位点的替换数',
+    method: '公开系统发育关系整理 · 教学演示',
     compareWith: 'vertebrate-gene',
   },
   {
@@ -674,6 +677,9 @@ export const exampleSpecs: ExampleSpec[] = [
     cladeLabels: vertebrateGeneCladeLabels,
     source: '教学示意基因树 · 仅移动海豚的位置，用于演示基因树与物种树的拓扑冲突',
     accent: '#f2c14e',
+    supportType: 'bootstrap',
+    branchUnit: '每个位点的替换数',
+    method: '教学示意基因树 · 拓扑冲突演示',
     compareWith: 'vertebrates',
   },
   {
@@ -685,6 +691,9 @@ export const exampleSpecs: ExampleSpec[] = [
     cladeLabels: microbeCladeLabels,
     source: '教学示意树 · 拓扑与分支长度不构成真实推断结果',
     accent: '#ff8a66',
+    supportType: 'bootstrap',
+    branchUnit: '每个位点的替换数',
+    method: '16S 教学示意树',
   },
   {
     id: 'gene-tree',
@@ -695,6 +704,9 @@ export const exampleSpecs: ExampleSpec[] = [
     cladeLabels: geneTreeCladeLabels,
     source: '教学示例 · 用于演示基因树与物种树的拓扑冲突',
     accent: '#8cc8c5',
+    supportType: 'bootstrap',
+    branchUnit: '每个位点的替换数',
+    method: '教学示例基因树',
     compareWith: 'species-tree',
   },
   {
@@ -706,6 +718,9 @@ export const exampleSpecs: ExampleSpec[] = [
     cladeLabels: speciesTreeCladeLabels,
     source: '教学示例 · 用于演示基因树与物种树的拓扑冲突',
     accent: '#c7b8ff',
+    supportType: 'bootstrap',
+    branchUnit: '每个位点的替换数',
+    method: '教学示例物种树',
     compareWith: 'gene-tree',
   },
 ];

@@ -18,6 +18,7 @@ interface TreeCanvasProps {
   storyFocusId?: string | null;
   storyActive?: boolean;
   cladeLabels?: CladeLabel[];
+  branchUnit?: string;
   accent: string;
   svgRef: RefObject<SVGSVGElement | null>;
   resetToken: number;
@@ -56,6 +57,7 @@ export function TreeCanvas({
   storyFocusId,
   storyActive = false,
   cladeLabels = [],
+  branchUnit,
   accent,
   svgRef,
   resetToken,
@@ -71,7 +73,10 @@ export function TreeCanvas({
   }, []);
 
   const narrow = viewportWidth < 760;
-  const narrowHeight = Math.max(780, tree.leaves.length * 38 + 100);
+  const largeTree = tree.leaves.length > 1200;
+  const naturalHeight = Math.max(780, tree.leaves.length * 38 + 100);
+  const narrowHeight = largeTree ? Math.min(naturalHeight, 1800) : naturalHeight;
+  const desktopHeight = largeTree ? Math.min(naturalHeight, 2200) : undefined;
 
   const layout = useMemo(() => {
     if (settings.layout === 'circular') {
@@ -88,7 +93,7 @@ export function TreeCanvas({
       kind: 'rectangular',
       branchMode: settings.branchMode,
       width: narrow ? 720 : 1120,
-      height: narrow ? narrowHeight : undefined,
+      height: narrow ? narrowHeight : desktopHeight,
       padding: narrow ? 24 : 44,
       labelSpace: narrow ? 216 : 188,
       xStart: narrow ? 24 : 44,
@@ -179,7 +184,7 @@ export function TreeCanvas({
   }, [storyActive, storyFocusId, tree.nodes]);
 
   const cladeItems = useMemo(() => {
-    if (!cladeLabels.length || settings.supportThreshold !== 0) return [];
+    if (largeTree || !cladeLabels.length || settings.supportThreshold !== 0) return [];
     const layoutById = new Map(layout.nodes.map((node) => [node.id, node]));
     const tipXByName = new Map(
       layout.tips.filter((tip) => tip.name).map((tip) => [tip.name as string, tip.x]),
@@ -249,7 +254,7 @@ export function TreeCanvas({
     }
 
     return items;
-  }, [cladeLabels, settings.supportThreshold, layout, tree]);
+  }, [cladeLabels, settings.supportThreshold, layout, tree, largeTree]);
 
   const dimmed = (nodeId: string) => {
     if (storyActive && storyIds.size > 0) return !storyIds.has(nodeId);
@@ -340,8 +345,9 @@ export function TreeCanvas({
 
       <svg
         ref={svgRef}
-        className={`tree-canvas ${dragging ? 'is-dragging' : ''}`}
+        className={`tree-canvas ${dragging ? 'is-dragging' : ''} ${largeTree ? 'is-large' : ''}`}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+        data-full-viewbox={`0 0 ${layout.width} ${layout.height}`}
         preserveAspectRatio="xMidYMid meet"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -425,6 +431,8 @@ export function TreeCanvas({
                 ? (flip ? (angle * 180) / Math.PI - 180 : (angle * 180) / Math.PI)
                 : 0;
               const note = metadata[node.name ?? '']?.note;
+              const showTipLabel =
+                !largeTree || isSelected || isSearch || isCollapsed;
               return (
                 <g
                   key={node.id}
@@ -458,23 +466,25 @@ export function TreeCanvas({
                       className="tip-dot"
                     />
                   )}
-                  <text
-                    x={circular ? 0 : labelX}
-                    y={circular ? 0 : labelY}
-                    transform={circular ? `translate(${labelX} ${labelY}) rotate(${rotation})` : undefined}
-                    textAnchor={circular && flip ? 'end' : 'start'}
-                    dominantBaseline={circular ? 'middle' : undefined}
-                    className={`tip-label ${isSelected ? 'is-selected' : ''} ${
-                      isSearch ? 'is-search' : ''
-                    } ${muted ? 'is-muted' : ''}`}
-                    style={
-                      settings.colorBy !== 'none' && !isSearch && !isSelected
-                        ? { fill: ringColor }
-                        : undefined
-                    }
-                  >
-                    {isCollapsed ? node.name : labelFor(node.name)}
-                  </text>
+                  {showTipLabel && (
+                    <text
+                      x={circular ? 0 : labelX}
+                      y={circular ? 0 : labelY}
+                      transform={circular ? `translate(${labelX} ${labelY}) rotate(${rotation})` : undefined}
+                      textAnchor={circular && flip ? 'end' : 'start'}
+                      dominantBaseline={circular ? 'middle' : undefined}
+                      className={`tip-label ${isSelected ? 'is-selected' : ''} ${
+                        isSearch ? 'is-search' : ''
+                      } ${muted ? 'is-muted' : ''}`}
+                      style={
+                        settings.colorBy !== 'none' && !isSearch && !isSelected
+                          ? { fill: ringColor }
+                          : undefined
+                      }
+                    >
+                      {isCollapsed ? node.name : labelFor(node.name)}
+                    </text>
+                  )}
                 </g>
               );
             }
@@ -584,11 +594,18 @@ export function TreeCanvas({
               className="scale-line"
             />
             <text x={minX + scaleLength + 8} y={layout.height - 13} className="scale-label">
-              每位点 {scaleValue} 个替换
+              {scaleValue} {branchUnit && branchUnit !== '未提供' ? branchUnit : '个替换 / 每位点'}
             </text>
           </g>
         )}
       </svg>
+
+      {largeTree && (
+        <div className="large-tree-note">
+          <strong>大树模式</strong>
+          <span>标签只在搜索或选中时显示；用搜索定位物种，或点击节点查看信息。</span>
+        </div>
+      )}
 
       {settings.layout === 'circular' && cladeItems.length > 0 && (
         <div className="canvas-clade-strip">
@@ -614,6 +631,12 @@ export function TreeCanvas({
         <span>{settings.layout === 'rectangular' ? '矩形' : '圆形'}</span>
         <i />
         <span>{settings.branchMode === 'phylogram' ? '按枝长' : '按拓扑'}</span>
+        {largeTree && (
+          <>
+            <i />
+            <span>性能模式</span>
+          </>
+        )}
         {searchText && (
           <>
             <i />

@@ -3,6 +3,8 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  Download,
+  FileJson,
   FileUp,
   GitCompareArrows,
   Info,
@@ -37,6 +39,14 @@ interface SidebarProps {
   onOpenCompare: () => void;
   onCompareId: (id: string) => void;
   onCladeFocus: (tips: string[]) => void;
+  onDownloadAnnotations: () => void;
+  onImportAnnotations: (file: File) => void;
+  onImportProject: (file: File) => void;
+  onProvenanceChange: (patch: Partial<TreeRecord>) => void;
+  comparePrune: boolean;
+  onComparePrune: (value: boolean) => void;
+  aliasCount: number;
+  onOpenAliases: () => void;
 }
 
 export function Sidebar({
@@ -60,10 +70,23 @@ export function Sidebar({
   onOpenCompare,
   onCompareId,
   onCladeFocus,
+  onDownloadAnnotations,
+  onImportAnnotations,
+  onImportProject,
+  onProvenanceChange,
+  comparePrune,
+  onComparePrune,
+  aliasCount,
+  onOpenAliases,
 }: SidebarProps) {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const annotationFileRef = useRef<HTMLInputElement>(null);
+  const projectFileRef = useRef<HTMLInputElement>(null);
   const active = records.find((record) => record.id === activeId) ?? records[0];
+  const annotatedCount = active
+    ? active.tree.leaves.filter((leaf) => active.metadata[leaf.name ?? '']?.cn).length
+    : 0;
 
   const handleFile = (file: File | undefined) => {
     if (file) onUpload(file);
@@ -176,7 +199,7 @@ export function Sidebar({
               <input
                 ref={fileRef}
                 type="file"
-                accept=".nwk,.newick,.tree,.tre,.txt"
+                accept=".nwk,.newick,.tree,.tre,.txt,.nex,.nexus"
                 onChange={(event) => {
                   handleFile(event.target.files?.[0]);
                   event.target.value = '';
@@ -187,9 +210,54 @@ export function Sidebar({
               </span>
               <span>
                 <strong>{dragOver ? '松手导入' : '导入树文件'}</strong>
-                <small>支持 Newick 格式 · 只在本地读取</small>
+                <small>支持 Newick / NEXUS · 只在本地读取</small>
               </span>
             </div>
+
+            <div className="annotation-tools">
+              <button className="annotation-tool" onClick={onDownloadAnnotations}>
+                <Download size={13} />
+                注释模板
+              </button>
+              <button
+                className="annotation-tool"
+                onClick={() => annotationFileRef.current?.click()}
+              >
+                <FileUp size={13} />
+                导入 CSV
+              </button>
+              <button
+                className="annotation-tool"
+                onClick={() => projectFileRef.current?.click()}
+              >
+                <FileJson size={13} />
+                导入项目
+              </button>
+              <input
+                ref={annotationFileRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onImportAnnotations(file);
+                  event.target.value = '';
+                }}
+              />
+              <input
+                ref={projectFileRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onImportProject(file);
+                  event.target.value = '';
+                }}
+              />
+            </div>
+            <p className="annotation-coverage">
+              中文注释：<strong>{annotatedCount}</strong> / {active?.tree.leaves.length ?? 0}
+              {annotatedCount < (active?.tree.leaves.length ?? 0) && ' · 点击叶节点可补全'}
+            </p>
           </section>
 
           {mode === 'compare' ? (
@@ -227,6 +295,24 @@ export function Sidebar({
                   <strong>{records.find((record) => record.id === compareId)?.name ?? '—'}</strong>
                 </div>
               </div>
+              <div className="toggle-row">
+                <div>
+                  <strong>只比较共同物种</strong>
+                  <small>画布中裁掉未匹配物种</small>
+                </div>
+                <button
+                  className={`switch ${comparePrune ? 'is-on' : ''}`}
+                  onClick={() => onComparePrune(!comparePrune)}
+                  aria-pressed={comparePrune}
+                >
+                  <span />
+                </button>
+              </div>
+              <button className="annotation-tool annotation-tool--wide" onClick={onOpenAliases}>
+                <GitCompareArrows size={13} />
+                匹配物种别名
+                {aliasCount > 0 && <b>{aliasCount}</b>}
+              </button>
               <p className="sidebar-help">
                 RF 距离只比较两棵树共有的物种。未匹配的物种会在右侧提示，不参与计算。
               </p>
@@ -393,6 +479,42 @@ export function Sidebar({
             </section>
           )}
 
+          <section className="sidebar-section">
+            <div className="sidebar-heading">
+              <span>数据说明</span>
+              <Info size={14} />
+            </div>
+            <div className="provenance-card">
+              <p className="provenance-source">{active.source}</p>
+              <label className="provenance-row">
+                <span>支持度类型</span>
+                <span className="select-wrap">
+                  <select
+                    value={active.supportType ?? 'unknown'}
+                    onChange={(event) =>
+                      onProvenanceChange({
+                        supportType: event.target.value as TreeRecord['supportType'],
+                      })
+                    }
+                  >
+                    <option value="bootstrap">自举值 bootstrap</option>
+                    <option value="posterior">后验概率 posterior</option>
+                    <option value="unknown">未提供 / 不明确</option>
+                  </select>
+                  <ChevronDown size={13} />
+                </span>
+              </label>
+              <div className="provenance-line">
+                <span>枝长单位</span>
+                <strong>{active.branchUnit ?? '未提供'}</strong>
+              </div>
+              <div className="provenance-line">
+                <span>建树方法</span>
+                <strong>{active.method ?? '未提供'}</strong>
+              </div>
+            </div>
+          </section>
+
           <div className="sidebar-note sidebar-note--cn">
             <BookOpen size={14} />
             <span>内置示例中的每个物种都有中文名和一段简单说明，点击树上的名字即可查看。</span>
@@ -400,7 +522,7 @@ export function Sidebar({
 
           <div className="sidebar-note">
             <Info size={14} />
-            <span>所有解析与渲染都在浏览器本地完成，不会上传你的树文件。</span>
+            <span>解析、注释和项目状态都会自动保存在本浏览器，不会上传你的树文件。</span>
           </div>
         </>
       )}

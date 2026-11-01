@@ -222,7 +222,73 @@ export interface TaxonMatch {
   right: PhyloNode;
 }
 
-export function matchTaxa(left: Tree, right: Tree): {
+/**
+ * Keeps only the named tips and collapses unary nodes. Useful for comparing
+ * trees that do not contain exactly the same taxon set.
+ */
+export function pruneTree(tree: Tree, names: string[]): Tree | null {
+  const wanted = new Set(names.map((name) => taxonKey(name)));
+
+  const clone = (node: PhyloNode, parent?: PhyloNode): PhyloNode | null => {
+    if (!node.children.length) {
+      if (!wanted.has(taxonKey(node.name ?? ''))) return null;
+      return {
+        id: node.id,
+        name: node.name,
+        length: node.length,
+        support: node.support,
+        children: [],
+        parent,
+        originalId: node.originalId ?? node.id,
+      };
+    }
+
+    const children = node.children
+      .map((child) => clone(child, undefined))
+      .filter((child): child is PhyloNode => Boolean(child));
+    if (!children.length) return null;
+    if (children.length === 1) {
+      const child = children[0];
+      child.length += node.length;
+      child.parent = parent;
+      return child;
+    }
+
+    const copy: PhyloNode = {
+      id: node.id,
+      name: node.name,
+      length: node.length,
+      support: node.support,
+      children,
+      parent,
+      originalId: node.originalId ?? node.id,
+    };
+    for (const child of children) child.parent = copy;
+    return copy;
+  };
+
+  const root = clone(tree.root);
+  if (!root) return null;
+
+  const nodes: PhyloNode[] = [];
+  walk(root, (node) => nodes.push(node));
+  const leaves = nodes.filter((node) => !node.children.length);
+  if (leaves.length < 2) return null;
+
+  return {
+    ...tree,
+    id: `${tree.id}-pruned`,
+    root,
+    nodes,
+    leaves,
+  };
+}
+
+export function matchTaxa(
+  left: Tree,
+  right: Tree,
+  aliases: Record<string, string> = {},
+): {
   matches: TaxonMatch[];
   unmatchedLeft: string[];
   unmatchedRight: string[];
@@ -235,13 +301,16 @@ export function matchTaxa(left: Tree, right: Tree): {
   const unmatchedLeft: string[] = [];
 
   for (const tip of left.leaves) {
-    const key = taxonKey(tip.name ?? '');
-    const other = rightByKey.get(key);
+    const rawName = tip.name ?? '';
+    const alias = aliases[rawName];
+    const key = taxonKey(rawName);
+    const aliasKey = alias ? taxonKey(alias) : null;
+    const other = (aliasKey ? rightByKey.get(aliasKey) : undefined) ?? rightByKey.get(key);
     if (other) {
       matches.push({ left: tip, right: other });
-      matchedRight.add(key);
+      matchedRight.add(taxonKey(other.name ?? ''));
     } else {
-      unmatchedLeft.push(tip.name ?? '未命名');
+      unmatchedLeft.push(rawName || '未命名');
     }
   }
 
