@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Story, TaxonMeta, TreeRecord, ViewSettings, WorkbenchMode } from './types';
-import { buildExampleTrees, stories } from './data/examples';
+import { buildExampleTrees, stories, withPhotos } from './data/examples';
 import { parseNewick, NewickParseError } from './lib/newick';
 import { parseNexus, isNexus } from './lib/nexus';
 import { parseProjectFile } from './lib/project';
@@ -54,7 +54,8 @@ export default function App() {
         const provenance = snapshot.provenanceOverrides?.[record.id];
         return {
           ...record,
-          ...(override ? { metadata: override } : {}),
+          // Merge rather than replace: bundled photos should survive older saves.
+          ...(override ? { metadata: withPhotos({ ...record.metadata, ...override }) } : {}),
           ...(provenance ?? {}),
         };
       });

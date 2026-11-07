@@ -26,6 +26,7 @@ import { displayName, descendantTips, getMrca, pathToRoot, taxonLabel } from '..
 import { formatBranchLength } from '../lib/newick';
 import { formatRf } from '../lib/rf';
 import { supportColor } from '../lib/palette';
+import { TaxonPhotoCard } from './TaxonPhotoCard';
 
 interface InspectorProps {
   tree: Tree;
@@ -270,6 +271,14 @@ export function Inspector({
           </div>
         </div>
 
+        {isTip && selectedNode.name && (
+          <TaxonPhotoCard
+            photo={metadata[selectedNode.name]?.photo}
+            name={displayName(selectedNode, metadata)}
+            onEdit={onEditTaxon ? () => onEditTaxon(selectedNode.name!) : undefined}
+          />
+        )}
+
         <div className="metric-grid">
           <div className="metric">
             <span>枝长</span>
@@ -312,6 +321,26 @@ export function Inspector({
             <div className="section-heading">
               <span className="mono-label">包含的物种</span>
               <span>{tips.length}</span>
+            </div>
+            <div className="photo-grid">
+              {tips
+                .filter((tip) => metadata[tip.name ?? '']?.photo?.url)
+                .slice(0, 6)
+                .map((tip) => (
+                  <button
+                    key={`${tip.id}-photo`}
+                    className="photo-chip"
+                    onClick={() => onSelectTip(tip.name ?? '')}
+                    title={taxonLabel(tip.name, metadata)}
+                  >
+                    <img
+                      src={metadata[tip.name!]?.photo?.url}
+                      alt={`${taxonLabel(tip.name, metadata)} 的代表照片`}
+                      loading="lazy"
+                    />
+                    <span>{taxonLabel(tip.name, metadata)}</span>
+                  </button>
+                ))}
             </div>
             <div className="chip-wrap">
               {tips.slice(0, 12).map((tip) => (

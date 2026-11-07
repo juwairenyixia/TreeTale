@@ -88,11 +88,24 @@ function headerIndex(header: string[], aliases: string[]): number {
 }
 
 export function buildAnnotationCsv(tree: Tree, metadata: Record<string, TaxonMeta>): string {
-  const rows: string[][] = [['name', 'cn', 'group', 'habitat', 'note']];
+  const rows: string[][] = [
+    ['name', 'cn', 'group', 'habitat', 'note', 'photo', 'photo_source', 'photo_license', 'photo_credit'],
+  ];
   for (const leaf of tree.leaves) {
     const name = leaf.name ?? '';
     const meta = metadata[name] ?? {};
-    rows.push([name, meta.cn ?? '', meta.group ?? '', meta.habitat ?? '', meta.note ?? '']);
+    const photo = meta.photo;
+    rows.push([
+      name,
+      meta.cn ?? '',
+      meta.group ?? '',
+      meta.habitat ?? '',
+      meta.note ?? '',
+      photo?.url ?? '',
+      photo?.source ?? '',
+      photo?.license ?? '',
+      photo?.credit ?? '',
+    ]);
   }
   return `\uFEFF${stringifyCsv(rows)}`;
 }
@@ -113,6 +126,10 @@ export function applyAnnotationCsv(
   const groupIndex = headerIndex(header, ['group', 'clade', '类群', '分类']);
   const habitatIndex = headerIndex(header, ['habitat', '生境', '环境']);
   const noteIndex = headerIndex(header, ['note', 'description', '说明', '注释']);
+  const photoIndex = headerIndex(header, ['photo', 'image', '图片', '照片', '图片地址']);
+  const photoSourceIndex = headerIndex(header, ['photo_source', 'image_source', '图片来源']);
+  const photoLicenseIndex = headerIndex(header, ['photo_license', 'license', '许可', '许可协议']);
+  const photoCreditIndex = headerIndex(header, ['photo_credit', 'credit', '作者', '版权']);
 
   if (nameIndex < 0) {
     return {
@@ -164,6 +181,17 @@ export function applyAnnotationCsv(
     if (noteIndex >= 0) {
       const value = (row[noteIndex] ?? '').trim();
       if (value) patch.note = value;
+    }
+    if (photoIndex >= 0) {
+      const url = (row[photoIndex] ?? '').trim();
+      if (url) {
+        patch.photo = {
+          url,
+          source: photoSourceIndex >= 0 ? (row[photoSourceIndex] ?? '').trim() || undefined : undefined,
+          license: photoLicenseIndex >= 0 ? (row[photoLicenseIndex] ?? '').trim() || undefined : undefined,
+          credit: photoCreditIndex >= 0 ? (row[photoCreditIndex] ?? '').trim() || undefined : undefined,
+        };
+      }
     }
     if (!patch.cn) {
       errors.push(`第 ${rowIndex + 2} 行缺少中文名`);

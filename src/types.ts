@@ -24,6 +24,21 @@ export interface Tree {
   rooted: boolean;
 }
 
+export interface TaxonPhoto {
+  /** 可直接用于 <img src> 的地址；内置物种为打包后的本地路径，用户物种可为 data URL */
+  url: string;
+  /** 图片来源名称，例如 iNaturalist */
+  source?: string;
+  /** 作者 / 版权声明 */
+  credit?: string;
+  /** 许可协议，例如 CC BY-NC */
+  license?: string;
+  /** 原始页面，便于溯源与核对 */
+  pageUrl?: string;
+  /** 备选：图片说明 */
+  caption?: string;
+}
+
 export interface TaxonMeta {
   /** 中文常用名，优先用于树标签和检查器标题 */
   cn?: string;
@@ -35,6 +50,8 @@ export interface TaxonMeta {
   habitat?: string;
   /** 面向初学者的中文说明 */
   note?: string;
+  /** 物种代表照片与来源信息 */
+  photo?: TaxonPhoto;
 }
 
 export interface CladeLabel {

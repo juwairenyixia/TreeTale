@@ -1,5 +1,6 @@
 import type { CladeLabel, Story, TaxonMeta, TreeRecord } from '../types';
 import { parseNewick } from '../lib/newick';
+import { bundledPhotos } from './speciesPhotos';
 
 export interface ExampleSpec extends Omit<TreeRecord, 'tree'> {
   newick: string;
@@ -854,6 +855,17 @@ export const stories: Story[] = [
 export function buildExampleTrees(): TreeRecord[] {
   return exampleSpecs.map((spec) => ({
     ...spec,
+    metadata: withPhotos(spec.metadata),
     tree: parseNewick(spec.newick, { id: spec.id, name: spec.name }),
   }));
+}
+
+/** Attach the bundled representative photo to every species that has one. */
+export function withPhotos(metadata: Record<string, TaxonMeta>): Record<string, TaxonMeta> {
+  const merged: Record<string, TaxonMeta> = {};
+  for (const [name, meta] of Object.entries(metadata)) {
+    const photo = bundledPhotos[name];
+    merged[name] = photo && !meta.photo ? { ...meta, photo } : meta;
+  }
+  return merged;
 }

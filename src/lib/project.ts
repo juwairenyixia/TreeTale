@@ -2,6 +2,7 @@ import type {
   CladeLabel,
   SupportType,
   TaxonMeta,
+  TaxonPhoto,
   TreeRecord,
   ViewSettings,
 } from '../types';
@@ -44,6 +45,17 @@ export function buildProjectFile(
   };
 }
 
+function cleanPhoto(input: unknown): TaxonPhoto | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const raw = input as Record<string, unknown>;
+  if (typeof raw.url !== 'string' || !raw.url.trim()) return undefined;
+  const photo: TaxonPhoto = { url: raw.url.trim() };
+  for (const field of ['source', 'credit', 'license', 'pageUrl', 'caption'] as const) {
+    if (typeof raw[field] === 'string' && raw[field]) photo[field] = raw[field] as string;
+  }
+  return photo;
+}
+
 function cleanMetadata(input: unknown): Record<string, TaxonMeta> {
   if (!input || typeof input !== 'object') return {};
   const output: Record<string, TaxonMeta> = {};
@@ -54,6 +66,8 @@ function cleanMetadata(input: unknown): Record<string, TaxonMeta> {
     for (const field of ['cn', 'common', 'group', 'habitat', 'note'] as const) {
       if (typeof raw[field] === 'string' && raw[field]) meta[field] = raw[field];
     }
+    const photo = cleanPhoto(raw.photo);
+    if (photo) meta.photo = photo;
     if (Object.keys(meta).length) output[key] = meta;
   }
   return output;

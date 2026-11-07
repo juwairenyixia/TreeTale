@@ -24,11 +24,17 @@ TreeTale 是一个面向生物信息学课程的**纯前端**静态网页项目�
 - 解析失败时给出具体位置和上下文，而不是笼统的“加载失败”
 - 多树文件会作为独立记录进入树库，不会覆盖原有树
 
-### 02 / 中文注释与主要进化枝
+### 02 / 中文注释、代表照片与主要进化枝
 - 内置示例的每个物种都有中文名、中文类群、中文生境和一段简单说明
-- 点击任意叶节点，可以打开“编辑中文注释”表单，补全中文名、类群、生境和说明
+- 内置 40 个物种配有**代表照片**，来自 iNaturalist 的分类单元照片 / 研究级观察记录，以及 Unsplash
+- 每张照片都显示来源、许可协议和作者，并提供“查看原始页面”链接；完整清单见 [docs/PHOTO-CREDITS.md](docs/PHOTO-CREDITS.md)
+- 物种检查器顶部显示照片；进化枝检查器显示所包含物种的小图墙，帮助快速建立直观印象
+- 上传自己的树后，可以在“编辑物种资料”里**上传本地图片或填写图片地址**，并补充来源、许可、作者和原始页面
+- 没有照片的物种会显示“还没有照片”，并给出“添加代表照片”入口
+- 注释 CSV 与项目 JSON 都会保留照片字段，便于批量维护与迁移
+- 点击任意叶节点，可以打开“编辑物种资料”表单，补全中文名、类群、生境、说明和照片
 - 注释修改会立即反映到树标签、图例、比较页和导出内容
-- 支持下载注释 CSV 模板，也支持批量导入 CSV
+- 支持下载注释 CSV 模板（含照片列），也支持批量导入 CSV
 - 5 棵树的主要进化枝都有中文标签：鱼类、四足动物、羊膜动物、哺乳动物、灵长类、鲸类、变形菌门、蓝细菌门等
 - 标签贴在最近共同祖先旁，自动避让其他标签；点击标签会选中整个进化枝
 - 侧栏“主要进化枝”可以快速定位；圆形布局在画布顶部显示标签条
@@ -36,10 +42,10 @@ TreeTale 是一个面向生物信息学课程的**纯前端**静态网页项目�
 - 拉丁学名保留在检查器中，并明确标注“学名（拉丁名）”，不要求读者认识英文
 
 ### 03 / 工作区与项目
-- 自定义树、中文注释和项目状态自动保存到浏览器 IndexedDB
-- 刷新页面后恢复上次打开的树和注释
+- 自定义树、中文注释、代表照片和项目状态自动保存到浏览器 IndexedDB
+- 刷新页面后恢复上次打开的树、注释和照片
 - 支持导出 / 导入 `.treetale.json` 项目文件
-- 项目 JSON 包含树、注释、主要进化枝、视图设置、支持度类型和枝长单位
+- 项目 JSON 包含树、注释（含照片来源）、主要进化枝、视图设置、支持度类型和枝长单位
 - 上传文件、注释和解析都在本地完成，不会发送到服务器
 
 ### 04 / 探索
@@ -96,13 +102,13 @@ TreeTale 是一个面向生物信息学课程的**纯前端**静态网页项目�
 
 ## 截图
 
-| 工作台：注释与主要进化枝 | 中文注释编辑器 |
+| 工作台：物种照片与来源 | 进化枝照片墙 |
 | --- | --- |
-| ![工作台](docs/workbench.jpg) | ![注释编辑器](docs/annotation.jpg) |
+| ![工作台](docs/workbench.jpg) | ![照片墙](docs/gallery.jpg) |
 
-| 比较与别名匹配 | 故事模式 |
+| 物种资料编辑器 | 比较与别名匹配 |
 | --- | --- |
-| ![比较](docs/compare.jpg) | ![故事模式](docs/story.jpg) |
+| ![编辑器](docs/annotation.jpg) | ![比较](docs/compare.jpg) |
 
 <p align="center">
   <img src="docs/export.jpg" alt="出版级导出设置" width="100%" />
@@ -141,7 +147,7 @@ pnpm preview
 src/
 ├── components/
 │   ├── AliasDialog.tsx      # 物种别名匹配
-│   ├── AnnotationDialog.tsx # 中文注释编辑器
+│   ├── AnnotationDialog.tsx # 物种资料编辑器（中文名 + 代表照片）
 │   ├── CompareView.tsx      # tanglegram + RF 对比
 │   ├── ExportDialog.tsx     # 出版级导出设置
 │   ├── HeroTree.tsx         # 首页装饰树
@@ -151,11 +157,13 @@ src/
 │   ├── Modal.tsx            # 通用对话框
 │   ├── Nav.tsx
 │   ├── Sidebar.tsx          # 树库、注释工具、视图设置、数据说明
+│   ├── TaxonPhotoCard.tsx   # 物种照片卡片（来源 / 许可 / 作者）
 │   ├── Toast.tsx
 │   ├── TreeCanvas.tsx       # 矩形/圆形树画布、缩放、搜索、大树模式
 │   └── Workbench.tsx        # 工作台状态与布局
 ├── data/
-│   └── examples.ts          # 5 棵示例树、中文注释、2 段故事
+│   ├── examples.ts          # 5 棵示例树、中文注释、2 段故事
+│   └── speciesPhotos.ts     # 40 个物种的代表照片与来源信息
 ├── lib/
 │   ├── csv.ts               # 注释 CSV 解析与导出
 │   ├── export.ts            # SVG / PNG 导出与导出选项
@@ -222,11 +230,22 @@ subtree := "(" subtree ("," subtree)+ ")" [label] [":" length]
 `src/lib/csv.ts` 支持带引号、逗号、换行的单元格，并接受中英文表头：
 
 ```csv
-name,cn,group,habitat,note
-Homo_sapiens,智人,哺乳类,陆地,现代人类
+name,cn,group,habitat,note,photo,photo_source,photo_license,photo_credit
+Homo_sapiens,智人,哺乳类,陆地,现代人类,/species/homo-sapiens.jpg,Unsplash,Unsplash License,Unsplash
 ```
 
-批量导入会报告匹配数量、未匹配名称和行错误，不会因为一行失败而丢弃整份 CSV。
+照片列可以留空；只要填写 `photo`，就会同时写入来源、许可和作者。批量导入会报告匹配数量、未匹配名称和行错误，不会因为一行失败而丢弃整份 CSV。
+
+### 物种照片
+
+`src/data/speciesPhotos.ts` 保存内置物种的照片与来源；`public/species/` 保存压缩后的图片（约 1.4 MB / 40 张）。
+
+- 内置照片通过 iNaturalist API 抓取：优先使用社区精选的分类单元照片（`taxon_photos`），其次使用研究级观察记录，只接受 CC0 / CC BY / CC BY-SA / CC BY-NC / CC BY-NC-SA。
+- 抓取脚本：`scripts/fetch-photos-curated.mjs`；生成 TypeScript 数据：`scripts/build-photo-data.mjs`；生成署名清单：`scripts/build-credits-doc.mjs`。
+- 完整来源与许可见 [docs/PHOTO-CREDITS.md](docs/PHOTO-CREDITS.md)。
+- 用户上传的图片以 data URL 形式写入 `TaxonMeta.photo.url`，随 IndexedDB 工作区保存，不会进入仓库。
+
+少数微生物（如霍乱弧菌、原绿球藻）没有可靠且许可清晰的代表照片，界面会显示“还没有照片”，用户可自行补充。
 
 ### Tanglegram 与别名
 
@@ -254,9 +273,10 @@ src/lib/csv.test.ts           4 tests
 src/lib/nexus.test.ts         3 tests
 src/lib/project.test.ts       2 tests
 src/lib/prune.test.ts         3 tests
+src/lib/photos.test.ts        5 tests
 ```
 
-共 **32 个测试**，覆盖：Newick 解析、引号名称、注释 support、posterior 归一化、科学计数法、错误输入、Newick round-trip、RF 相同/冲突/单边差异、26 个物种比较、中文注释完整性、主要进化枝完整性、枝长小于 1 的布局、CSV 注释、NEXUS 多树、项目 JSON、物种别名和树裁剪。
+共 **37 个测试**，覆盖：Newick 解析、引号名称、注释 support、posterior 归一化、科学计数法、错误输入、Newick round-trip、RF 相同/冲突/单边差异、26 个物种比较、中文注释完整性、主要进化枝完整性、枝长小于 1 的布局、CSV 注释、NEXUS 多树、项目 JSON、物种别名、树裁剪，以及照片元数据的来源/许可完整性与 CSV / 项目文件的照片往返。
 
 ## 部署到 GitHub Pages
 
@@ -284,7 +304,10 @@ git push -u origin main
 - RF 目前按**有根树**的进化枝集合计算；无根树的双分比较是进阶方向。
 - 超过 1,200 个叶节点会进入大树模式：保留树结构，隐藏大部分标签，用搜索和检查器定位。更大的树仍建议先裁剪或做 Canvas/WebGL 渲染。
 - 支持度阈值是显示过滤，不改变原始树，也不代表统计显著性。
+- 内置物种照片来自第三方（iNaturalist / Unsplash），**不适用本仓库的 MIT 许可**；转载时请遵循各自的 CC 许可，详见 [docs/PHOTO-CREDITS.md](docs/PHOTO-CREDITS.md)。
+- 少数微生物没有可靠且许可清晰的照片，界面显示“还没有照片”，可自行补充。
+- 用户上传的图片保存在浏览器本地，不会同步到其他设备；项目 JSON 是跨设备迁移的方式。
 
 ## License
 
-[MIT](LICENSE)
+代码采用 [MIT](LICENSE)。物种照片的版权与许可独立于代码，详见 [docs/PHOTO-CREDITS.md](docs/PHOTO-CREDITS.md)。

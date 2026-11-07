@@ -524,6 +524,10 @@ export function Sidebar({
             <Info size={14} />
             <span>解析、注释和项目状态都会自动保存在本浏览器，不会上传你的树文件。</span>
           </div>
+
+          <p className="sidebar-credit">
+            物种照片来自 iNaturalist / Unsplash，许可见各自标注。点击检查器中的“查看原始页面”可核对来源。
+          </p>
         </>
       )}
 
