@@ -26,6 +26,7 @@ import { displayName, descendantTips, getMrca, pathToRoot, taxonLabel } from '..
 import { formatBranchLength } from '../lib/newick';
 import { formatRf } from '../lib/rf';
 import { supportColor } from '../lib/palette';
+import { resolvePhotoUrl } from '../lib/assets';
 import { TaxonPhotoCard } from './TaxonPhotoCard';
 
 interface InspectorProps {
@@ -334,7 +335,7 @@ export function Inspector({
                     title={taxonLabel(tip.name, metadata)}
                   >
                     <img
-                      src={metadata[tip.name!]?.photo?.url}
+                      src={resolvePhotoUrl(metadata[tip.name!]?.photo?.url)}
                       alt={`${taxonLabel(tip.name, metadata)} 的代表照片`}
                       loading="lazy"
                     />

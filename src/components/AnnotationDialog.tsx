@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TaxonMeta, TaxonPhoto } from '../types';
+import { resolvePhotoUrl } from '../lib/assets';
 import { Modal } from './Modal';
 
 interface AnnotationDialogProps {
@@ -163,7 +164,7 @@ export function AnnotationDialog({
         <div className="photo-editor__body">
           <div className="photo-editor__preview">
             {photoUrl ? (
-              <img src={photoUrl} alt="照片预览" />
+              <img src={resolvePhotoUrl(photoUrl)} alt="照片预览" />
             ) : (
               <div className="photo-editor__empty">尚未设置照片</div>
             )}

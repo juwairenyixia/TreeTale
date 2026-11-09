@@ -1,5 +1,6 @@
 import { ImageOff } from 'lucide-react';
 import type { TaxonPhoto } from '../types';
+import { resolvePhotoUrl } from '../lib/assets';
 
 const LICENSE_LABEL: Record<string, string> = {
   cc0: 'CC0 公共领域',
@@ -54,11 +55,12 @@ export function TaxonPhotoCard({ photo, name, onEdit, compact }: TaxonPhotoCardP
 
   const license = licenseLabel(photo.license);
   const credit = cleanCredit(photo.credit);
+  const src = resolvePhotoUrl(photo.url);
 
   return (
     <figure className={`photo-card ${compact ? 'is-compact' : ''}`}>
       <div className="photo-card__frame">
-        <img src={photo.url} alt={`${name} 的代表照片`} loading="lazy" />
+        <img src={src} alt={`${name} 的代表照片`} loading="lazy" />
       </div>
       <figcaption className="photo-card__meta">
         <span className="photo-card__source">
